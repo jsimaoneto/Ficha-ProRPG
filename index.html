@@ -643,6 +643,7 @@ const HAB_CLASSE = {
   'Fantasma — Manobras Espectrais':['Golpe Fantasma','Passo entre Véus','Correntes do Além','Grito do Morto','Armadura de Almas','Furto de Energia','Eco do Guerreiro','Memória Muscular','Barreira Espectral','Palavras do Guerreiro','Névoa Persistente','Domínio Territorial'],
   'Homem do Oeste — Trilhas (Subclasses)':['Tiro Sujo','Conversa Mole','Sempre Tem uma Saída','Bote da Cascavel','Lenda Fora da Lei','Distintivo de Autoridade','Tiro de Advertência (Xerife)','Mão Firme da Lei','Justiceiro Implacável','A Lei em Pessoa','Faro de Caçador','Disparo de Captura','Interrogador','Mestre da Contenção','Caçada Definitiva'],
   'Paladino — Juramento da Ordem Suprema (Subclasse)':['Magias do Juramento da Ordem Suprema','Aprisionar (Canalizar Divindade)','Aura de Proteção AO (Canalizar Divindade)','Marca da Ordem','Garanhão de Guerra Divino','O Longo Braço da Justiça','Mão de Ordem','Presença de Ao'],
+  'Clérigo — Domínio da Ordem Suprema (Subclasse)':['Magias de Domínio da Ordem Suprema','Disciplina Divina','Escudo da Ordem','Vontade de Ao (Canalizar Divindade)','Autoridade Suprema','Sentinela da Ordem','Equilíbrio Cósmico'],
 };
 
 // MAPA DE EFEITOS — aplicados automaticamente à ficha ao escolher o item.
@@ -1087,6 +1088,15 @@ const DESC = {
   'O Longo Braço da Justiça':'N10. O alcance das suas auras e habilidades de Canalizar Divindade é dobrado. Além disso, como ação bônus, você imbui sua arma com energia celestial por um número de turnos igual ao seu modificador de Carisma (mínimo 1).',
   'Mão de Ordem':'N15. Ao conjurar uma magia que restaura pontos de vida, você pode escolher criaturas adicionais a até 9 m do alvo principal; cada uma recupera vida. Usos iguais ao seu modificador de Carisma (mínimo 1), recuperados no descanso longo.',
   'Presença de Ao':'N20. Como ação, invoca a Presença de AO por 10 minutos: aura de 18 m em que você e seus aliados têm vantagem em salvaguardas e os inimigos têm desvantagem em salvaguardas contra você; a aura reduz o dano mágico recebido e não pode ser anulada por Contramágica. 1x/descanso longo (ou gastando um espaço de magia).',
+
+  // ===== SUBCLASSE DE CLÉRIGO — Domínio da Ordem Suprema (Aliança de Heróis) =====
+  'Magias de Domínio da Ordem Suprema':'Sempre preparadas (não contam no seu limite), conforme o nível de Clérigo — 1º: Comando, Escudo da Fé. 3º: Acalmar Emoções, Zona da Verdade. 5º: Remover Maldição, Dissipar Magia. 7º: Sentinela da Fé, Guardião da Fé. 9º: Imunidade a Energia, Prisão Planar.',
+  'Disciplina Divina':'N1 (Clérigo). Você ganha proficiência com armaduras pesadas. Disciplina Suprema: pode somar seu modificador de Sabedoria aos testes de resistência de Constituição feitos para manter a concentração em magias.',
+  'Escudo da Ordem':'N1 (Clérigo). Como ação, concede a um aliado a até 9 m um bônus de +2 na CA até o fim do seu próximo turno. Usos iguais ao seu modificador de Sabedoria (mínimo 1), recuperados no descanso longo.',
+  'Vontade de Ao (Canalizar Divindade)':'N2 (Clérigo). Gasta um uso de Canalizar Divindade: como ação, aprisiona criaturas próximas com correntes pesadas por 1 minuto. As afetadas repetem a salvaguarda ao fim de cada um dos seus turnos, encerrando o efeito sobre si em caso de sucesso.',
+  'Autoridade Suprema':'N6 (Clérigo). Quando conjura uma magia que restaura pontos de vida ou remove uma condição em um alvo a até 9 m, pode escolher criaturas adicionais a até 9 m para também se beneficiarem; cada uma recebe um bônus igual ao seu modificador de Sabedoria e +1 nos testes de resistência por 1 minuto.',
+  'Sentinela da Ordem':'N8 (Clérigo). Você pode imbuir sua arma: 1x/turno, ao acertar um ataque com arma, causa +1d8 de dano adicional. No 14º nível, esse dano aumenta para 2d8.',
+  'Equilíbrio Cósmico':'N17 (Clérigo). Invoca a presença de Ao para impor o equilíbrio. Aura de Supremacia: como ação, cria uma aura de 18 m de raio por 1 minuto — inimigos na área têm desvantagem em todos os testes de resistência contra as magias e efeitos que você criar, e seus aliados têm vantagem em todos os testes de resistência. 1x/descanso longo. Além disso, suas magias de cura sempre restauram o valor máximo (sem rolar os dados).',
 
   // ===== ITENS MÁGICOS — Livro do Mestre 2024 =====
   'Poção de Cura':'(Comum) Ao beber (ação bônus), recupera 2d4 + 2 pontos de vida.',
