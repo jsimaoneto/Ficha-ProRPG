@@ -193,9 +193,55 @@
   .hint{font-size:10px; color:var(--muted); margin:2px 0 0;}
   .badge{display:inline-block; background:var(--accent2); color:#2a2102; font-size:8.5px; font-weight:800; padding:1px 5px; border-radius:8px; vertical-align:middle;}
 
+  /* ===== Tablets / janelas estreitas ===== */
   @media (max-width:900px){
     .sheet{width:auto; padding:10mm 6mm;}
     .abilities{grid-template-columns:repeat(3,1fr);}
+    .row{grid-template-columns:1fr 1fr !important;}
+  }
+  /* ===== Telas touch (celulares e tablets em retrato) ===== */
+  @media (max-width:680px){
+    html{-webkit-text-size-adjust:100%; -webkit-tap-highlight-color:rgba(122,31,31,.15);}
+    body{font-size:14px;}
+    .sheet{
+      width:100%; min-height:0; margin:8px auto; padding:14px 11px; border-width:2px;
+      box-shadow:0 0 0 3px #c9aa63, inset 0 0 0 2px #cdb079, 0 6px 18px rgba(0,0,0,.6);
+    }
+    /* empilha todas as colunas em uma só */
+    .row{grid-template-columns:1fr !important;}
+    .abilities{grid-template-columns:repeat(3,1fr); gap:6px;}
+    /* alvos de toque maiores e sem zoom automático no iOS (fonte 16px) */
+    input:not([type=checkbox]):not([type=radio]),select,textarea{font-size:16px; padding:10px 9px; min-height:44px;}
+    textarea{min-height:84px;}
+    .ability input.score{font-size:18px; min-height:42px; padding:6px; width:64px;}
+    .line{grid-template-columns:26px 34px 1fr 28px; font-size:13px; padding:4px 0;}
+    .line input[type=checkbox]{width:22px; height:22px;}
+    .exp input{width:18px; height:18px;}
+    /* botões confortáveis para o dedo */
+    button.tool,.addbtn{font-size:14px; padding:11px 15px; min-height:44px;}
+    .rowdel,.chip button{font-size:22px; padding:4px 10px;}
+    .chip{font-size:13px; padding:5px 6px 5px 12px;}
+    /* barra de ferramentas */
+    #toolbar{padding:8px 10px; gap:6px;}
+    #toolbar h1{font-size:13px; flex-basis:100%; margin:0 0 2px;}
+    #toolbar .spacer{display:none;}
+    /* itens inventados / bônus personalizados empilham os campos */
+    .invrow,.cbrow{flex-wrap:wrap;}
+    .invrow input,.invrow input:first-child,.cbrow input:first-child,.cbrow select,.cbrow input[type=number]{flex:1 1 100%;}
+    /* tabela de armas: fontes maiores e legíveis */
+    table.atk{font-size:13px;}
+    table.atk input{font-size:14px; padding:7px 5px;}
+    .mast-in{font-size:12px !important;}
+    /* cabeçalho/banner mais compacto */
+    .banner .title{font-size:21px; letter-spacing:1.5px;}
+    .banner .sub{letter-spacing:2px;}
+    .banner-top{gap:10px;}
+    .logo-seal{width:54px; height:54px;}
+    .seal{width:42px; height:42px;}
+    .brand{flex-direction:column; align-items:flex-start; gap:2px;}
+    .brand .t2{text-align:left;}
+    /* emblema da classe deixa de flutuar e centraliza */
+    .emblem-box{float:none; width:auto; margin:6px auto 10px;}
   }
 
   /* ---------- IMPRESSÃO / PDF ---------- */
