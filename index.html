@@ -588,7 +588,7 @@ const CLASSES = {
   'Ladino':            {die:8,  cast:null,  sub:['Adaga Espiritual','Assassino','Ladrão','Trapaceiro Arcano']},
   'Mago':              {die:6,  cast:'int', sub:['Abjurador','Adivinhador','Evocador','Ilusionista']},
   'Monge':             {die:8,  cast:null,  sub:['Combatente da Mão Espalmada','Combatente da Misericórdia','Combatente das Sombras','Combatente dos Elementos']},
-  'Paladino':          {die:10, cast:'car', sub:['Juramento da Devoção','Juramento da Glória','Juramento da Vingança','Juramento dos Anciões','Juramento da Vontade ★']},
+  'Paladino':          {die:10, cast:'car', sub:['Juramento da Devoção','Juramento da Glória','Juramento da Vingança','Juramento dos Anciões','Juramento da Vontade ★','Juramento da Ordem Suprema ★']},
   'Assassino do Credo ★':  {die:8,  cast:null, sub:[]},
   'Caçador de Demônios ★': {die:10, cast:null, sub:[]},
   // Suplemento AdH (The Homebrewery)
@@ -642,6 +642,7 @@ const HAB_CLASSE = {
   'Espectro — Habilidades & Caminhos':['Toque Espectral','Possessão','Drenagem de Vida','Olhos do Além','Posse Aprimorada','Possessão Veloz','Salto entre Corpos','Memória Roubada','Posse Duradoura','Drenagem em Massa','Posse Profunda','Forma Livre Perfeita','Senhor dos Corpos','Espectro da Paz','Espectro da Guerra','Espectro do Poder'],
   'Fantasma — Manobras Espectrais':['Golpe Fantasma','Passo entre Véus','Correntes do Além','Grito do Morto','Armadura de Almas','Furto de Energia','Eco do Guerreiro','Memória Muscular','Barreira Espectral','Palavras do Guerreiro','Névoa Persistente','Domínio Territorial'],
   'Homem do Oeste — Trilhas (Subclasses)':['Tiro Sujo','Conversa Mole','Sempre Tem uma Saída','Bote da Cascavel','Lenda Fora da Lei','Distintivo de Autoridade','Tiro de Advertência (Xerife)','Mão Firme da Lei','Justiceiro Implacável','A Lei em Pessoa','Faro de Caçador','Disparo de Captura','Interrogador','Mestre da Contenção','Caçada Definitiva'],
+  'Paladino — Juramento da Ordem Suprema (Subclasse)':['Magias do Juramento da Ordem Suprema','Aprisionar (Canalizar Divindade)','Aura de Proteção AO (Canalizar Divindade)','Marca da Ordem','Garanhão de Guerra Divino','O Longo Braço da Justiça','Mão de Ordem','Presença de Ao'],
 };
 
 // MAPA DE EFEITOS — aplicados automaticamente à ficha ao escolher o item.
@@ -1076,6 +1077,16 @@ const DESC = {
   'Interrogador':'Caçador de Recompensas, N7. Vantagem em Intimidação e Intuição para interrogar criatura contida/capturada/Amedrontada e saber se mente; 1x/descanso, após 1 min interrogando, arranca uma informação verdadeira (salv. de Carisma).',
   'Mestre da Contenção':'Caçador de Recompensas, N11. Criaturas Agarradas/Imobilizadas por você têm desvantagem para escapar e em ataques contra outros; reação para Agarrar a Presa a 1,5 m sem ação; o Disparo de Captura passa a reduzir o deslocamento por 1 min.',
   'Caçada Definitiva':'Caçador de Recompensas, N17. Duas Presas; ignora terreno/clima no rastreio. 1x/descanso longo, contra uma Presa a 18 m: por 1 min, vantagem em ataques, crítico com 19-20 e reação de contenção; se a Presa cair, recupera 2 Sangue-Frio.',
+
+  // ===== SUBCLASSE DE PALADINO — Juramento da Ordem Suprema (Aliança de Heróis) =====
+  'Magias do Juramento da Ordem Suprema':'Sempre preparadas (não contam no seu limite), conforme o nível de Paladino — 3º: Comando, Imobilizar Pessoa, Perdição. 5º: Contramágica, Compreender Idiomas, Zona da Verdade. 9º: Imobilizar Monstro, Dissipar Magia, Conceder Maldição. 13º: Contingência, Imposição, Grande Comando. 17º: Parar o Tempo, Dominar Monstro, Palavra de Retorno.',
+  'Aprisionar (Canalizar Divindade)':'N3. Como ação, gasta um uso de Canalizar Divindade: aprisiona criaturas próximas com correntes divinas por 1 minuto. As afetadas repetem a salvaguarda ao fim de cada um dos seus turnos, encerrando o efeito sobre si em caso de sucesso.',
+  'Aura de Proteção AO (Canalizar Divindade)':'N3. Como ação, emana uma aura de 3 m; enquanto estiver consciente, você e seus aliados na aura recebem +1 na CA — ou foque em uma única criatura na área para conceder +3 na CA. (No 10º nível, O Longo Braço da Justiça dobra o alcance desta aura.)',
+  'Marca da Ordem':'N3. Como ação, marca uma criatura a até 9 m. Você pode usar a Destruição Divina (Divine Smite) como ação livre contra o alvo marcado — e também ao acertá-lo com sua arma espiritual. Recupera os usos com descanso curto ou longo.',
+  'Garanhão de Guerra Divino':'N7. Sua magia Corcel Divino (Divine Steed) é potencializada e você se torna um verdadeiro cavaleiro de AO, com uma montaria mais robusta. O primeiro uso após um descanso longo não gasta espaço de magia.',
+  'O Longo Braço da Justiça':'N10. O alcance das suas auras e habilidades de Canalizar Divindade é dobrado. Além disso, como ação bônus, você imbui sua arma com energia celestial por um número de turnos igual ao seu modificador de Carisma (mínimo 1).',
+  'Mão de Ordem':'N15. Ao conjurar uma magia que restaura pontos de vida, você pode escolher criaturas adicionais a até 9 m do alvo principal; cada uma recupera vida. Usos iguais ao seu modificador de Carisma (mínimo 1), recuperados no descanso longo.',
+  'Presença de Ao':'N20. Como ação, invoca a Presença de AO por 10 minutos: aura de 18 m em que você e seus aliados têm vantagem em salvaguardas e os inimigos têm desvantagem em salvaguardas contra você; a aura reduz o dano mágico recebido e não pode ser anulada por Contramágica. 1x/descanso longo (ou gastando um espaço de magia).',
 
   // ===== ITENS MÁGICOS — Livro do Mestre 2024 =====
   'Poção de Cura':'(Comum) Ao beber (ação bônus), recupera 2d4 + 2 pontos de vida.',
