@@ -45,7 +45,7 @@
   /* ----- Folha ----- */
   .sheet{
     width:210mm; min-height:297mm;
-    margin:18px auto; padding:14mm 12mm;
+    margin:18px auto; padding:9mm 10mm;
     position:relative;
     background-color:#f3e7c6;
     background-image:
@@ -76,8 +76,8 @@
   .brand .t1{font-family:Georgia,"Times New Roman",serif; font-size:24px; font-weight:700; color:var(--accent); letter-spacing:.5px;}
   .brand .t2{font-size:11px; color:var(--muted); text-align:right; line-height:1.35;}
 
-  .grid{display:grid; gap:8px;}
-  .row{display:grid; gap:8px;}
+  .grid{display:grid; gap:6px;}
+  .row{display:grid; gap:6px;}
   .field{display:flex; flex-direction:column; gap:2px;}
   .field label{font-size:9.5px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); font-weight:700;}
   input,select,textarea{
@@ -89,9 +89,9 @@
   textarea{resize:vertical; min-height:48px; line-height:1.35;}
   .readonly{background:var(--hl); font-weight:700; text-align:center;}
 
-  .panel{border:1px solid var(--line); border-radius:7px; padding:9px; background:#fffdf6;}
+  .panel{border:1px solid var(--line); border-radius:7px; padding:7px 8px; background:#fffdf6;}
   .panel h3{
-    margin:0 0 7px; font-size:11px; text-transform:uppercase; letter-spacing:.6px;
+    margin:0 0 5px; font-size:11px; text-transform:uppercase; letter-spacing:.6px;
     color:var(--accent); border-bottom:1px solid var(--line2); padding-bottom:3px;
   }
 
@@ -120,6 +120,16 @@
   table.atk th{font-size:8.5px; text-transform:uppercase; color:var(--muted); text-align:left; padding:2px 3px;}
   table.atk td{padding:1px 2px;}
   table.atk input{padding:3px 4px; font-size:11.5px;}
+  table.atk td{vertical-align:middle;}
+  .mast-in{font-size:10px !important; font-weight:700; color:var(--accent); text-align:center; cursor:help; background:#fff8e6 !important;}
+  .rowdel{border:none; background:none; color:var(--accent); cursor:pointer; font-weight:800; font-size:15px; line-height:1; padding:0 2px;}
+  .rowdel:hover{color:#000;}
+  .invrow,.cbrow{display:flex; gap:6px; margin-bottom:5px; align-items:center;}
+  .invrow input{flex:1; font-size:11.5px;}
+  .invrow input:first-child{flex:0 0 32%;}
+  .cbrow input:first-child{flex:0 0 28%; font-size:11.5px;}
+  .cbrow select{flex:1;}
+  .cbrow input[type=number]{flex:0 0 60px; text-align:center; font-weight:700;}
 
   .small{font-size:10px; color:var(--muted);}
 
@@ -263,7 +273,16 @@
         <input id="antecedente" list="dl-ant" data-k>
         <datalist id="dl-ant"></datalist>
       </div>
-      <div class="field"><label>Alinhamento</label><input id="alinhamento" data-k></div>
+      <div class="field"><label>Alinhamento</label>
+        <select id="alinhamento" data-k>
+          <option value="">— escolha —</option>
+          <option>Leal e Bom</option>
+          <option>Neutro e Bom</option>
+          <option>Caótico e Bom</option>
+          <option>Leal e Neutro</option>
+          <option>Neutro</option>
+        </select>
+      </div>
       <div class="field"><label>Jogador</label><input id="jogador" data-k></div>
     </div>
   </div>
@@ -312,7 +331,7 @@
       <div class="row" style="grid-template-columns:repeat(3,1fr);">
         <div class="statbox"><div class="cap">Classe de Armadura</div><input id="ca" class="big" style="border:none;background:transparent" data-k placeholder="—"><div class="small" id="caBon"></div></div>
         <div class="statbox"><div class="cap">Iniciativa</div><div class="big" id="iniciativa">+0</div><div class="small">mod. Destreza <span class="badge">auto</span></div></div>
-        <div class="statbox"><div class="cap">Deslocamento</div><input id="desloc" class="big" style="border:none;background:transparent" data-k placeholder="9m"></div>
+        <div class="statbox"><div class="cap">Deslocamento</div><input id="desloc" class="big" style="border:none;background:transparent" data-k placeholder="9m"><div class="small" id="deslocBon"></div></div>
       </div>
 
       <div class="row" style="grid-template-columns:repeat(3,1fr);">
@@ -336,10 +355,23 @@
         </div>
       </div>
 
+      <div class="panel" style="padding:7px 9px;">
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <span class="cap" style="white-space:nowrap; font-weight:700; color:var(--accent);">🛡️ Armadura</span>
+          <select id="sel-armadura" data-k onchange="recalc()" style="flex:1; min-width:130px;"></select>
+          <label style="font-size:11px; display:flex; align-items:center; gap:4px; white-space:nowrap;"><input type="checkbox" id="chk-escudo" data-k onchange="recalc()"> Escudo (+2)</label>
+        </div>
+      </div>
+
       <div class="panel">
-        <h3>Ataques &amp; Conjurações</h3>
+        <h3>⚔️ Ataques &amp; Conjurações <span class="small">— escolha a arma e clique +; bônus, dano e maestria entram sozinhos</span></h3>
+        <div class="addrow noprint" style="margin-bottom:6px;">
+          <select id="sel-arma"></select>
+          <button class="addbtn" onclick="addArma()">+ Arma</button>
+        </div>
+        <div class="selprev noprint" id="prev-arma" style="display:none"></div>
         <table class="atk">
-          <thead><tr><th style="width:42%">Nome</th><th style="width:20%">Bônus/CD</th><th>Dano / Efeito</th></tr></thead>
+          <thead><tr><th style="width:32%">Nome</th><th style="width:12%">Bônus</th><th style="width:24%">Dano</th><th style="width:20%">Maestria</th><th class="noprint" style="width:8%"></th></tr></thead>
           <tbody id="ataques"></tbody>
         </table>
       </div>
@@ -399,6 +431,26 @@
     </div>
     <div class="selprev noprint" id="prev-hab" style="display:none"></div>
     <div id="chips-hab" class="chips"></div>
+  </div>
+
+  <div class="panel" style="margin-bottom:10px;">
+    <h3>💍 Itens Mágicos <span class="small">— Livro do Mestre 2024 (Comuns · Incomuns · Raros · Muito Raros · Lendários); os defensivos somam CA/salvaguardas sozinhos</span></h3>
+    <div class="addrow noprint">
+      <select id="sel-mag"></select>
+      <button class="addbtn" onclick="addItem('mag')">+ Adicionar</button>
+    </div>
+    <div class="selprev noprint" id="prev-mag" style="display:none"></div>
+    <div id="chips-mag" class="chips"></div>
+  </div>
+
+  <div class="panel" style="margin-bottom:10px;">
+    <h3>🪄 Itens Mágicos Extras <span class="small">— até 5 itens próprios, não listados (escreva o nome e o efeito)</span></h3>
+    <div id="invItens"></div>
+  </div>
+
+  <div class="panel" style="margin-bottom:10px;">
+    <h3>🎲 Bônus Personalizados <span class="small">— some um bônus onde precisar: escolha o valor, o local da ficha e a origem</span></h3>
+    <div id="custBonus"></div>
   </div>
 
   <div class="row" style="grid-template-columns:1fr 1fr;">
@@ -600,11 +652,25 @@ const HAB_CLASSE = {
 const BONUS = {
   // ---- Bônus numéricos fixos ----
   'Atitude':        {init:2},
+  'Alerta':         {initProf:1},                     // +Bônus de Proficiência na Iniciativa (D&D 2024)
+  'Arquearia':      {atkRanged:2},                    // +2 em ataques à distância (Estilo de Luta)
   'Grande e Forte': {chk:{for:2, des:-2}},
   'Resistente':     {hpL:2},
   'Vigoroso':       {hpL:2},
   'Couro Curtido':  {ca:1},
   'Indeciso':       {init:-2, dis:['Iniciativa (dificuldade em decidir)']},
+
+  // ---- Itens Mágicos: bônus automáticos ----
+  'Manto de Proteção':    {ca:1, svAll:1},
+  'Anel de Proteção':     {ca:1, svAll:1},
+  'Braceletes de Defesa': {ca:2},
+  'Pedra Ioun (Proteção)':{ca:1},
+  'Pedra da Boa Sorte':   {chkAll:1, svAll:1},
+  'Escudo +1':            {ca:1},
+  'Escudo +2':            {ca:2},
+  'Escudo +3':            {ca:3},
+  'Armadura +1':          {ca:1},
+  'Armadura +2':          {ca:2},
 
   // ---- Qualidades: VANTAGEM ----
   'Afinidade Animal':  {adv:['Lidar com Animais']},
@@ -642,6 +708,86 @@ const BONUS = {
   'Olho de Vaqueiro':       {adv:['Sobrevivência']},   // clima e navegação
   'Couro de Sela':          {adv:['Salvaguardas contra Exaustão']},
   'Olho que Tudo Vê':       {adv:['Jogadas de ataque (Olho Mortal)']},
+};
+
+// MAESTRIAS de armas (D&D 2024)
+const MAESTRIAS = {
+  'Incisivo':'Ao acertar, você ganha vantagem na próxima jogada de ataque contra o mesmo alvo (neste ou no próximo turno).',
+  'Lentidão':'Ao acertar e causar dano, reduz o deslocamento do alvo em 3 m até o início do seu próximo turno.',
+  'Empurrão':'Ao acertar, pode empurrar o alvo (tamanho Grande ou menor) até 3 m para longe de você.',
+  'Derrubar':'Ao acertar, o alvo faz salvaguarda de Constituição (CD = 8 + mod. do atributo + proficiência) ou cai Caído.',
+  'Debilitar':'Ao acertar, o alvo fica com desvantagem na próxima jogada de ataque dele (até o início do seu próximo turno).',
+  'Talho':'Permite fazer o ataque extra da propriedade Leve como parte da ação Atacar, em vez de uma ação bônus (1x/turno).',
+  'Trespassar':'Ao acertar uma criatura, pode atingir outra a até 1,5 m dela com o mesmo ataque (dano sem o modificador de atributo).',
+  'Arranhão':'Se você errar o ataque, ainda causa dano igual ao modificador do atributo usado no ataque.',
+};
+
+// ARMADURAS — base=CA base; cap=limite de Destreza (null=Des total, 0=sem Des, 2/3=máximo)
+const ARMADURAS = [
+  {n:'— manual / sem armadura —', base:null, cat:''},
+  {n:'Acolchoada', base:11, cap:null, cat:'Leve'},
+  {n:'Couro', base:11, cap:null, cat:'Leve'},
+  {n:'Couro Batido', base:12, cap:null, cat:'Leve'},
+  {n:'Gibão de Peles', base:12, cap:2, cat:'Média'},
+  {n:'Camisão de Malha', base:13, cap:2, cat:'Média'},
+  {n:'Brunha (Cota de Escamas)', base:14, cap:2, cat:'Média', stealthDis:true},
+  {n:'Peitoral', base:14, cap:2, cat:'Média'},
+  {n:'Meia-Armadura', base:15, cap:2, cat:'Média', stealthDis:true},
+  {n:'Cota de Anéis', base:14, cap:0, cat:'Pesada', stealthDis:true},
+  {n:'Cota de Malha', base:16, cap:0, cat:'Pesada', stealthDis:true, strReq:13},
+  {n:'Cota de Talas', base:17, cap:0, cat:'Pesada', stealthDis:true, strReq:15},
+  {n:'Armadura de Placas', base:18, cap:0, cat:'Pesada', stealthDis:true, strReq:15},
+];
+
+// ARMAS — dmg, tipo, fin=acuidade, ranged=à distância, vers=dano versátil, mast=maestria, props=propriedades
+const ARMAS = [
+  {n:'Adaga', dmg:'1d4', tipo:'Perfurante', fin:true, mast:'Talho', props:'Acuidade, Leve, Arremesso 6/18'},
+  {n:'Clava', dmg:'1d4', tipo:'Concussão', mast:'Lentidão', props:'Leve'},
+  {n:'Clava Grande', dmg:'1d8', tipo:'Concussão', mast:'Empurrão', props:'Duas mãos'},
+  {n:'Foice Curta', dmg:'1d4', tipo:'Cortante', mast:'Talho', props:'Leve'},
+  {n:'Lança', dmg:'1d6', tipo:'Perfurante', vers:'1d8', mast:'Derrubar', props:'Arremesso 6/18, Versátil (1d8)'},
+  {n:'Maça', dmg:'1d6', tipo:'Concussão', mast:'Debilitar', props:'—'},
+  {n:'Machadinha', dmg:'1d6', tipo:'Cortante', mast:'Incisivo', props:'Leve, Arremesso 6/18'},
+  {n:'Martelo Leve', dmg:'1d4', tipo:'Concussão', mast:'Talho', props:'Leve, Arremesso 6/18'},
+  {n:'Azagaia', dmg:'1d6', tipo:'Perfurante', mast:'Lentidão', props:'Arremesso 9/36'},
+  {n:'Bordão', dmg:'1d6', tipo:'Concussão', vers:'1d8', mast:'Derrubar', props:'Versátil (1d8)'},
+  {n:'Arco Curto', dmg:'1d6', tipo:'Perfurante', ranged:true, mast:'Incisivo', props:'Munição 24/96, Duas mãos'},
+  {n:'Besta Leve', dmg:'1d8', tipo:'Perfurante', ranged:true, mast:'Lentidão', props:'Munição 24/96, Recarga, Duas mãos'},
+  {n:'Dardo', dmg:'1d4', tipo:'Perfurante', fin:true, ranged:true, mast:'Talho', props:'Acuidade, Arremesso 6/18'},
+  {n:'Funda', dmg:'1d4', tipo:'Concussão', ranged:true, mast:'Lentidão', props:'Munição 9/36'},
+  {n:'Espada Longa', dmg:'1d8', tipo:'Cortante', vers:'1d10', mast:'Debilitar', props:'Versátil (1d10)'},
+  {n:'Espada Curta', dmg:'1d6', tipo:'Perfurante', fin:true, mast:'Incisivo', props:'Acuidade, Leve'},
+  {n:'Espada Grande', dmg:'2d6', tipo:'Cortante', mast:'Arranhão', props:'Pesada, Duas mãos'},
+  {n:'Rapieira', dmg:'1d8', tipo:'Perfurante', fin:true, mast:'Incisivo', props:'Acuidade'},
+  {n:'Cimitarra', dmg:'1d6', tipo:'Cortante', fin:true, mast:'Talho', props:'Acuidade, Leve'},
+  {n:'Machado de Batalha', dmg:'1d8', tipo:'Cortante', vers:'1d10', mast:'Derrubar', props:'Versátil (1d10)'},
+  {n:'Machado Grande', dmg:'1d12', tipo:'Cortante', mast:'Trespassar', props:'Pesada, Duas mãos'},
+  {n:'Glaive', dmg:'1d10', tipo:'Cortante', mast:'Arranhão', props:'Pesada, Alcance, Duas mãos'},
+  {n:'Alabarda', dmg:'1d10', tipo:'Cortante', mast:'Trespassar', props:'Pesada, Alcance, Duas mãos'},
+  {n:'Maça Estrela', dmg:'1d8', tipo:'Perfurante', mast:'Debilitar', props:'—'},
+  {n:'Mangual', dmg:'1d8', tipo:'Concussão', mast:'Debilitar', props:'—'},
+  {n:'Picareta de Guerra', dmg:'1d8', tipo:'Perfurante', mast:'Debilitar', props:'—'},
+  {n:'Tridente', dmg:'1d8', tipo:'Perfurante', vers:'1d10', mast:'Derrubar', props:'Arremesso 6/18, Versátil (1d10)'},
+  {n:'Pique', dmg:'1d10', tipo:'Perfurante', mast:'Empurrão', props:'Pesada, Alcance, Duas mãos'},
+  {n:'Lança Montada', dmg:'1d12', tipo:'Perfurante', mast:'Derrubar', props:'Alcance, Pesada, Especial'},
+  {n:'Chicote', dmg:'1d4', tipo:'Cortante', fin:true, mast:'Lentidão', props:'Acuidade, Alcance'},
+  {n:'Arco Longo', dmg:'1d8', tipo:'Perfurante', ranged:true, mast:'Lentidão', props:'Munição 45/180, Pesada, Duas mãos'},
+  {n:'Besta de Mão', dmg:'1d6', tipo:'Perfurante', ranged:true, mast:'Incisivo', props:'Munição 9/36, Leve, Recarga'},
+  {n:'Besta Pesada', dmg:'1d10', tipo:'Perfurante', ranged:true, mast:'Empurrão', props:'Munição 30/120, Pesada, Recarga, Duas mãos'},
+  {n:'Glaive de Guerra ✦', dmg:'1d8', tipo:'Cortante', fin:true, mast:'Trespassar', props:'Acuidade · Cleave (Força) ou Slow (Destreza) — Caçador de Demônios'},
+  {n:'Revólver Seis-Tiros ✦', dmg:'1d10', tipo:'Perfurante', ranged:true, mast:'Incisivo', props:'Fogo, Munição 12/36, Recarga, Leve'},
+  {n:'Rifle de Repetição ✦', dmg:'1d10', tipo:'Perfurante', ranged:true, mast:'Incisivo', props:'Fogo, Munição 24/90, Recarga, Duas mãos'},
+  {n:'Espingarda Bicano ✦', dmg:'2d6', tipo:'Perfurante', ranged:true, mast:'Empurrão', props:'Fogo, Cone 4,5 m, Recarga, Dispersão, Duas mãos'},
+  {n:'Rifle de Precisão ✦', dmg:'2d10', tipo:'Perfurante', ranged:true, mast:'Lentidão', props:'Fogo, Munição 60/240, Recarga, Pesada, Duas mãos'},
+];
+
+// ITENS MÁGICOS (curados do Livro do Mestre 2024), agrupados por raridade
+const ITENS_MAGICOS = {
+  'Comuns':['Poção de Cura','Poção de Escalada','Pergaminho de Magia'],
+  'Incomuns':['Poção de Cura Maior','Bolsa de Manuseio','Botas Élficas','Manto Élfico','Manto de Proteção','Braceletes de Arquearia','Botas de Passada e Salto','Botas Aladas','Arma +1','Escudo +1','Pedras de Comunicação','Anel de Salto','Anel de Natação','Bastão Imóvel','Corda de Escalada','Lanterna da Revelação','Botas das Terras Geladas','Elmo de Compreender Idiomas','Luvas de Força do Ogro','Pedra da Boa Sorte','Varinha de Mísseis Mágicos'],
+  'Raros':['Poção de Cura Superior','Poção de Invulnerabilidade','Arma +2','Armadura +1','Escudo +2','Anel de Proteção','Anel de Resistência','Anel de Ação Livre','Amuleto da Saúde','Braceletes de Defesa','Botas de Velocidade','Manto de Deslocamento','Pedra Ioun (Proteção)','Bastão do Guardião do Pacto','Manto do Morcego','Cinturão de Força do Gigante das Colinas'],
+  'Muito Raros':['Arma +3','Armadura +2','Escudo +3','Amuleto dos Planos','Tomo de Aumento de Atributo'],
+  'Lendários':['Manto da Invisibilidade','Anel dos Três Desejos','Espada Vorpal','Armadura de Invulnerabilidade'],
 };
 
 // RECURSOS / MECÂNICAS por classe (nome base, sem ★/✦) — cada um vira um marcador atual/máx
@@ -931,6 +1077,57 @@ const DESC = {
   'Mestre da Contenção':'Caçador de Recompensas, N11. Criaturas Agarradas/Imobilizadas por você têm desvantagem para escapar e em ataques contra outros; reação para Agarrar a Presa a 1,5 m sem ação; o Disparo de Captura passa a reduzir o deslocamento por 1 min.',
   'Caçada Definitiva':'Caçador de Recompensas, N17. Duas Presas; ignora terreno/clima no rastreio. 1x/descanso longo, contra uma Presa a 18 m: por 1 min, vantagem em ataques, crítico com 19-20 e reação de contenção; se a Presa cair, recupera 2 Sangue-Frio.',
 
+  // ===== ITENS MÁGICOS — Livro do Mestre 2024 =====
+  'Poção de Cura':'(Comum) Ao beber (ação bônus), recupera 2d4 + 2 pontos de vida.',
+  'Poção de Escalada':'(Comum) Por 1 hora, ganha deslocamento de escalada igual ao seu e vantagem para não cair ao escalar.',
+  'Pergaminho de Magia':'(Comum a Lendário, conforme o círculo) Conjura a magia escrita sem gastar espaço; o pergaminho se desfaz após o uso.',
+  'Poção de Cura Maior':'(Incomum) Recupera 4d4 + 4 pontos de vida.',
+  'Bolsa de Manuseio':'(Incomum) Espaço extradimensional que guarda até ~250 kg em até 2 m³, pesando sempre 7 kg.',
+  'Botas Élficas':'(Incomum) Seus passos ficam silenciosos; vantagem em testes de Furtividade que dependam de movimento.',
+  'Manto Élfico':'(Incomum · Sintonia) Com o capuz erguido: vantagem em Furtividade e desvantagem para quem tenta percebê-lo pela visão.',
+  'Manto de Proteção':'(Incomum · Sintonia) +1 na Classe de Armadura e +1 em todas as salvaguardas.',
+  'Braceletes de Arquearia':'(Incomum · Sintonia) Proficiência com arcos e +2 de dano com armas de arco à distância.',
+  'Botas de Passada e Salto':'(Incomum · Sintonia) Seu deslocamento mínimo é 9 m e você salta o triplo da distância normal.',
+  'Botas Aladas':'(Incomum · Sintonia) Ganha deslocamento de voo igual ao seu, por até 4 horas no total (recarrega aos poucos).',
+  'Arma +1':'(Incomum) +1 nas jogadas de ataque e de dano feitas com esta arma mágica.',
+  'Escudo +1':'(Incomum) +1 adicional na Classe de Armadura, além do bônus normal do escudo.',
+  'Pedras de Comunicação':'(Incomum) Par de pedras; permite conjurar Mensagem entre elas a qualquer distância no mesmo plano, 1x/dia.',
+  'Anel de Salto':'(Incomum · Sintonia) Pode conjurar Pular em si mesmo à vontade.',
+  'Anel de Natação':'(Incomum) Ganha deslocamento de natação de 12 m.',
+  'Bastão Imóvel':'(Incomum) Ao acionar, fica fixo no ar suportando até ~4 toneladas; preso a algo, trava o objeto no lugar.',
+  'Corda de Escalada':'(Incomum) Corda de 18 m que, sob comando, se move, amarra-se, desamarra-se e se prende sozinha.',
+  'Lanterna da Revelação':'(Incomum · Sintonia) A luz revela criaturas e objetos invisíveis dentro da sua claridade.',
+  'Botas das Terras Geladas':'(Incomum · Sintonia) Resistência a dano de frio, ignora terreno difícil de gelo/neve e suporta frio extremo.',
+  'Elmo de Compreender Idiomas':'(Incomum) Pode conjurar Compreender Idiomas a partir dele (recarrega ao amanhecer).',
+  'Luvas de Força do Ogro':'(Incomum · Sintonia) Seu valor de Força passa a ser 19 (se já não for maior).',
+  'Pedra da Boa Sorte':'(Incomum · Sintonia) +1 em todos os testes de atributo (perícias) e em todas as salvaguardas.',
+  'Varinha de Mísseis Mágicos':'(Incomum) 7 cargas; gaste cargas para conjurar Mísseis Mágicos (recupera 1d6+1 ao amanhecer).',
+  'Poção de Cura Superior':'(Raro) Recupera 8d4 + 8 pontos de vida.',
+  'Poção de Invulnerabilidade':'(Raro) Por 1 minuto, você tem resistência a todo tipo de dano.',
+  'Arma +2':'(Raro) +2 nas jogadas de ataque e de dano com esta arma.',
+  'Armadura +1':'(Raro) +1 na Classe de Armadura, além da própria armadura.',
+  'Escudo +2':'(Raro) +2 adicional na CA, além do bônus normal do escudo.',
+  'Anel de Proteção':'(Raro · Sintonia) +1 na Classe de Armadura e +1 em todas as salvaguardas.',
+  'Anel de Resistência':'(Raro · Sintonia) Resistência a um tipo de dano, determinado pela gema do anel.',
+  'Anel de Ação Livre':'(Raro · Sintonia) Imune a ser Paralisado ou Imobilizado por magia; ignora terreno difícil e seu deslocamento não pode ser reduzido.',
+  'Amuleto da Saúde':'(Raro · Sintonia) Seu valor de Constituição passa a ser 19 (se já não for maior).',
+  'Braceletes de Defesa':'(Raro · Sintonia) +2 na Classe de Armadura quando você não usa armadura nem escudo.',
+  'Botas de Velocidade':'(Raro · Sintonia) Como ação bônus, por até 10 min dobra seu deslocamento e os ataques corpo a corpo contra você têm desvantagem.',
+  'Manto de Deslocamento':'(Raro · Sintonia) Sua imagem se desloca: ataques contra você têm desvantagem, até você sofrer dano (volta no seu próximo turno).',
+  'Pedra Ioun (Proteção)':'(Raro · Sintonia) Orbita sua cabeça e dá +1 na CA enquanto não estiver guardada.',
+  'Bastão do Guardião do Pacto':'(Raro · Sintonia, bruxo) +1 (até +3) nas CDs e ataques das suas magias; 1x/dia recupera um espaço de magia de pacto.',
+  'Manto do Morcego':'(Raro · Sintonia) Vantagem em Furtividade; no escuro, pode voar e até se transformar em morcego.',
+  'Cinturão de Força do Gigante das Colinas':'(Raro · Sintonia) Seu valor de Força passa a ser 21 (versões de gigantes maiores dão valores ainda mais altos).',
+  'Arma +3':'(Muito Raro) +3 nas jogadas de ataque e de dano com esta arma.',
+  'Armadura +2':'(Muito Raro) +2 na Classe de Armadura, além da armadura.',
+  'Escudo +3':'(Muito Raro) +3 adicional na CA, além do bônus normal do escudo.',
+  'Amuleto dos Planos':'(Muito Raro · Sintonia) Pode conjurar Deslocamento entre Planos (teste de Inteligência para acertar o destino).',
+  'Tomo de Aumento de Atributo':'(Muito Raro) Estudá-lo por vários dias aumenta permanentemente um atributo (e seu máximo) em 2.',
+  'Manto da Invisibilidade':'(Lendário · Sintonia) Como ação, fica Invisível à vontade (e volta a ficar visível como ação).',
+  'Anel dos Três Desejos':'(Lendário) Possui 3 cargas; gaste uma para conjurar a magia Desejo.',
+  'Espada Vorpal':'(Lendário · Sintonia) Espada +3 que ignora resistência a corte; num 20 natural de ataque, decapita o alvo (se tiver cabeça e não for imune).',
+  'Armadura de Invulnerabilidade':'(Lendário · Sintonia) Resistência a dano não mágico; 1x/dia, ganha imunidade a esse dano por 10 minutos.',
+
   // ===== TALENTOS — Livro do Jogador 2024 =====
   'Alerta':'Talento de Origem. Você ganha proficiência em Iniciativa, somando seu Bônus de Proficiência às jogadas de Iniciativa. Além disso, logo após rolar Iniciativa, pode trocar seu resultado com o de um aliado voluntário (desde que nenhum dos dois esteja Incapacitado).',
   'Artifista':'Talento de Origem. Ganha proficiência com 3 Ferramentas de Artesão à escolha; 20% de desconto ao comprar itens não mágicos; e, ao terminar um Descanso Longo, pode fabricar uma peça de equipamento da tabela de Fabricação Rápida (dura até o próximo Descanso Longo).',
@@ -1041,7 +1238,7 @@ function montarSaves(){
     <div class="line">
       <input type="checkbox" id="sv-${a.k}" data-k onchange="recalc()">
       <span class="val" id="svv-${a.k}">+0</span>
-      <span>${a.nome}</span>
+      <span>${a.nome} <span class="mk" id="svm-${a.k}"></span></span>
       <span></span>
     </div>`).join('');
 }
@@ -1065,9 +1262,81 @@ function montarAtaques(){
       <td><input id="atk-n-${i}" data-k></td>
       <td><input id="atk-b-${i}" data-k></td>
       <td><input id="atk-d-${i}" data-k></td>
+      <td><input id="atk-m-${i}" class="mast-in" data-k readonly title=""></td>
+      <td class="noprint"><button type="button" class="rowdel" title="limpar/excluir esta arma" onclick="limparArma(${i})">×</button></td>
     </tr>`;
   }
   document.getElementById('ataques').innerHTML=rows;
+}
+function limparArma(i){
+  ['n','b','d','m'].forEach(s=>{ const e=document.getElementById('atk-'+s+'-'+i); if(e){ e.value=''; if(s==='m') e.title=''; } });
+  salvar(); recalc();
+}
+function refreshMaestrias(){
+  for(let i=0;i<6;i++){ const e=document.getElementById('atk-m-'+i); if(e) e.title = MAESTRIAS[e.value] || ''; }
+}
+function vById(id){ const e=document.getElementById(id); return e?e.value:''; }
+function popArmasArmaduras(){
+  const sa = document.getElementById('sel-armadura');
+  if(sa) sa.innerHTML = ARMADURAS.map(a=>{
+    const et = a.base==null ? '' : ` — CA ${a.base}${a.cap===0?'':(a.cap?`+Des(máx ${a.cap})`:'+Des')}${a.cat?` · ${a.cat}`:''}`;
+    return `<option value="${a.n}">${a.n}${et}</option>`;
+  }).join('');
+  const sw = document.getElementById('sel-arma');
+  if(sw){
+    sw.innerHTML = '<option value="">— escolha uma arma —</option>' + ARMAS.map((w,i)=>{
+      const t = `${w.dmg} ${w.tipo} · ${w.props} · Maestria ${w.mast}: ${MAESTRIAS[w.mast]||''}`;
+      return `<option value="${i}" title="${escAttr(t)}">${w.n} — ${w.dmg} ${w.tipo}</option>`;
+    }).join('');
+    sw.onchange = ()=>{
+      const p = document.getElementById('prev-arma'); if(!p) return;
+      const w = ARMAS[+sw.value];
+      if(!w){ p.style.display='none'; p.innerHTML=''; return; }
+      p.style.display='block';
+      p.innerHTML = `<b>${w.n}</b> — ${w.dmg} ${w.tipo} · ${w.props}<br><b>Maestria ${w.mast}:</b> ${MAESTRIAS[w.mast]||''}`;
+    };
+  }
+}
+function addArma(){
+  const sel = document.getElementById('sel-arma'); if(!sel || sel.value==='') return;
+  const w = ARMAS[+sel.value]; if(!w) return;
+  const mFor = mod(vById('sc-for')), mDes = mod(vById('sc-des'));
+  const lv = parseInt(vById('nivel'))||1, pb = profByLevel(lv);
+  const abil = w.ranged ? 'des' : (w.fin ? (mDes>=mFor?'des':'for') : 'for');
+  const aMod = abil==='des' ? mDes : mFor;
+  const atk = aMod + pb + (w.ranged ? (BON.atkRanged||0) : 0);
+  const tipoAb = w.tipo.slice(0,4) + '.';
+  const dano = `${w.dmg}${fmt(aMod)} ${tipoAb}${w.vers?` (v ${w.vers}${fmt(aMod)})`:''}`;
+  for(let i=0;i<6;i++){
+    const nEl = document.getElementById('atk-n-'+i);
+    if(nEl && !nEl.value){
+      nEl.value = w.n;
+      document.getElementById('atk-b-'+i).value = fmt(atk);
+      document.getElementById('atk-d-'+i).value = dano;
+      const mEl = document.getElementById('atk-m-'+i);
+      if(mEl){ mEl.value = w.mast; mEl.title = MAESTRIAS[w.mast] || ''; }
+      sel.value=''; const p=document.getElementById('prev-arma'); if(p){p.style.display='none';p.innerHTML='';}
+      salvar(); recalc(); return;
+    }
+  }
+  alert('Todas as linhas de ataque estão preenchidas. Apague uma para adicionar outra arma.');
+}
+function montarExtras(){
+  let inv='';
+  for(let i=0;i<5;i++) inv+=`<div class="invrow"><input id="inv-n-${i}" data-k placeholder="Nome do item inventado"><input id="inv-d-${i}" data-k placeholder="Efeito / descrição"></div>`;
+  const ie=document.getElementById('invItens'); if(ie) ie.innerHTML=inv;
+  let cb='';
+  for(let i=0;i<5;i++) cb+=`<div class="cbrow"><input id="cb-label-${i}" data-k oninput="recalc()" placeholder="origem (ex.: bênção)"><select id="cb-target-${i}" data-k onchange="recalc()"></select><input id="cb-val-${i}" type="number" data-k oninput="recalc()" placeholder="+0"></div>`;
+  const ce=document.getElementById('custBonus'); if(ce) ce.innerHTML=cb;
+  popCustomBonus();
+}
+function popCustomBonus(){
+  let o = '<option value="">— onde aplicar o bônus —</option>';
+  PERICIAS.forEach(p=>o+=`<option value="skill:${p[0]}">Perícia: ${p[0]}</option>`);
+  ATRIBUTOS.forEach(a=>o+=`<option value="sv:${a.k}">Salvaguarda de ${a.nome}</option>`);
+  ATRIBUTOS.forEach(a=>o+=`<option value="chk:${a.k}">Testes de ${a.nome} (todas as perícias do atributo)</option>`);
+  o += '<option value="init:">Iniciativa</option><option value="ca:">Classe de Armadura (CA)</option><option value="pp:">Percepção Passiva</option><option value="hpL:">PV por nível</option>';
+  for(let i=0;i<5;i++){ const s=document.getElementById('cb-target-'+i); if(s) s.innerHTML=o; }
 }
 
 /* ============ EVENTOS / CÁLCULO ============ */
@@ -1111,6 +1380,7 @@ function onClasse(){
 }
 
 function recalc(){
+  computeBonuses();   // recalcula bônus/penalidades ativos (itens + armadura)
   // modificadores
   const m = {};
   ATRIBUTOS.forEach(a=>{
@@ -1127,6 +1397,11 @@ function recalc(){
   ATRIBUTOS.forEach(a=>{
     const prof = document.getElementById('sv-'+a.k).checked;
     document.getElementById('svv-'+a.k).textContent = fmt(m[a.k] + (prof?pb:0) + (BON.sv[a.k]||0));
+    const sm = document.getElementById('svm-'+a.k);
+    if(sm){
+      const src = BON.svSrc && BON.svSrc[a.k];
+      sm.innerHTML = src ? `<span class="adv" title="Salvaguarda de ${a.nome} ${BON.sv[a.k]>0?'+':''}${BON.sv[a.k]} por: ${src.join('; ')}">⚡</span>` : '';
+    }
   });
 
   // perícias (inclui bônus de itens: por atributo BON.chk e por perícia BON.skill)
@@ -1143,18 +1418,36 @@ function recalc(){
     const mk = document.getElementById('mk-'+i);
     if(mk){
       let s='';
-      if(BON.advSkill[p[0]]) s += `<span class="adv" title="Vantagem — ${BON.advSkill[p[0]].join(', ')}">▲</span>`;
-      if(BON.disSkill[p[0]]) s += `<span class="dis" title="Desvantagem — ${BON.disSkill[p[0]].join(', ')}">▼</span>`;
+      if(BON.advSkill[p[0]]) s += `<span class="adv" title="Vantagem em ${p[0]} por: ${BON.advSkill[p[0]].join('; ')}">▲</span>`;
+      if(BON.disSkill[p[0]]) s += `<span class="dis" title="Desvantagem em ${p[0]} por: ${BON.disSkill[p[0]].join('; ')}">▼</span>`;
       mk.innerHTML = s;
     }
   });
 
   document.getElementById('passiva').textContent = 10 + perc + (BON.pp||0);
-  document.getElementById('iniciativa').textContent = fmt(m.des + (BON.init||0));
+  document.getElementById('iniciativa').textContent = fmt(m.des + (BON.init||0) + pb*(BON.initProf||0));
 
-  // badges de bônus de itens em campos de entrada (CA e PV)
+  // Classe de Armadura: se há armadura escolhida, calcula automaticamente; senão, campo manual
+  const caInput = document.getElementById('ca');
   const caB = document.getElementById('caBon');
-  if(caB) caB.textContent = BON.ca ? `▲ ${BON.ca>0?'+':''}${BON.ca} de itens` : '';
+  const armSel = document.getElementById('sel-armadura');
+  const arm = armSel ? ARMADURAS.find(a=>a.n===armSel.value) : null;
+  const escEl = document.getElementById('chk-escudo');
+  const escudo = escEl && escEl.checked;
+  if(arm && arm.base!=null){
+    const dexPart = arm.cap===null ? m.des : (arm.cap===0 ? 0 : Math.min(m.des, arm.cap));
+    const total = arm.base + dexPart + (escudo?2:0) + (BON.ca||0);
+    if(caInput){ caInput.value = total; caInput.readOnly = true; }
+    const strSc = parseInt(document.getElementById('sc-for').value)||10;
+    const lento = arm.strReq && strSc < arm.strReq;
+    if(caB) caB.textContent = `${arm.base}${arm.cap===0?'':' + Des '+fmt(dexPart)}${escudo?' + Escudo 2':''}${BON.ca?' + itens '+BON.ca:''}`;
+    const db = document.getElementById('deslocBon');
+    if(db) db.innerHTML = lento ? `<span class="dis" title="Armadura pesada com Força ${strSc} (exige ${arm.strReq}): seu deslocamento é reduzido em 3 m.">▼ −3 m (Força &lt; ${arm.strReq})</span>` : '';
+  } else {
+    if(caInput) caInput.readOnly = false;
+    if(caB) caB.textContent = (BON.ca?`▲ +${BON.ca} de itens`:'') + (escudo?(BON.ca?' · ':'')+'+2 de Escudo (some manual)':'');
+    const db = document.getElementById('deslocBon'); if(db) db.innerHTML = '';
+  }
   const pvB = document.getElementById('pvBon');
   if(pvB){ const v = (BON.hpL||0)*lv; pvB.textContent = v ? `▲ +${v} de itens (PV)` : ''; }
 
@@ -1184,32 +1477,81 @@ function recalc(){
   document.getElementById('nomeEco2').textContent = eco;
   const e3 = document.getElementById('nomeEco3'); if(e3) e3.textContent = eco;
 
+  renderBonusPanels();
+  refreshMaestrias();
   salvar();
 }
 
+// Painéis do fim da ficha: bônus numéricos e Vantagens/Desvantagens com o MOTIVO de cada marca
+function renderBonusPanels(){
+  const bl = document.getElementById('bonusList');
+  if(bl) bl.innerHTML = BON.list.length
+    ? '<ul style="margin:4px 0 0; padding-left:18px;">' + BON.list.map(x=>`<li>${x}</li>`).join('') + '</ul>'
+    : 'Nenhum bônus numérico ativo. Itens com bônus fixo (ex.: Atitude +2 iniciativa, Alerta, Resistente, Manto de Proteção) são somados sozinhos nos campos certos da página 1.';
+  const advArr = [], disArr = [];
+  for(const sk in BON.advSkill) advArr.push(`▲ <b>${sk}</b> — por: ${BON.advSkill[sk].join('; ')}`);
+  BON.advOther.forEach(o=>advArr.push(`▲ ${o.t} — por: ${o.src}`));
+  for(const sk in BON.disSkill) disArr.push(`▼ <b>${sk}</b> — por: ${BON.disSkill[sk].join('; ')}`);
+  BON.disOther.forEach(o=>disArr.push(`▼ ${o.t} — por: ${o.src}`));
+  const av = document.getElementById('advList');
+  if(av) av.innerHTML = advArr.length
+    ? '<ul style="margin:2px 0 0; padding-left:18px;">' + advArr.map(x=>`<li>${x}</li>`).join('') + '</ul>'
+    : '<span class="small">nenhuma vantagem ativa</span>';
+  const dv = document.getElementById('disList');
+  if(dv) dv.innerHTML = disArr.length
+    ? '<ul style="margin:2px 0 0; padding-left:18px;">' + disArr.map(x=>`<li>${x}</li>`).join('') + '</ul>'
+    : '<span class="small">nenhuma desvantagem ativa</span>';
+}
+
 /* ============ TALENTOS / HABILIDADES / QUALIDADES / DEFEITOS ============ */
-const LISTAS = {tal:[], hab:[], qual:[], def:[]};
+const LISTAS = {tal:[], hab:[], qual:[], def:[], mag:[]};
 const QMAP = {}, DMAP = {};
 QUALIDADES.forEach(q=>QMAP[q.n]=q);
 DEFEITOS.forEach(d=>DMAP[d.n]=d);
 
 const PERICIA_NAMES = PERICIAS.map(p=>p[0]);
 // Bônus agregados ativos (lidos pelo recalc)
-let BON = {chk:{}, skill:{}, sv:{}, init:0, ca:0, pp:0, hpL:0, list:[], advSkill:{}, disSkill:{}, advOther:[], disOther:[]};
+let BON = {chk:{}, skill:{}, sv:{}, svSrc:{}, init:0, initProf:0, atkRanged:0, ca:0, pp:0, hpL:0, list:[], advSkill:{}, disSkill:{}, advOther:[], disOther:[]};
 function computeBonuses(){
-  const acc = {chk:{}, skill:{}, sv:{}, init:0, ca:0, pp:0, hpL:0, list:[], advSkill:{}, disSkill:{}, advOther:[], disOther:[]};
-  [].concat(LISTAS.tal, LISTAS.hab, LISTAS.qual, LISTAS.def).forEach(n=>{
+  const acc = {chk:{}, skill:{}, sv:{}, svSrc:{}, init:0, initProf:0, atkRanged:0, ca:0, pp:0, hpL:0, list:[], advSkill:{}, disSkill:{}, advOther:[], disOther:[]};
+  [].concat(LISTAS.tal, LISTAS.hab, LISTAS.qual, LISTAS.def, LISTAS.mag).forEach(n=>{
     const b = BONUS[n]; if(!b) return;
     if(b.init){ acc.init+=b.init; acc.list.push(`${n}: Iniciativa ${b.init>0?'+':''}${b.init}`); }
+    if(b.initProf){ acc.initProf+=b.initProf; acc.list.push(`${n}: Iniciativa +Bônus de Proficiência`); }
+    if(b.atkRanged){ acc.atkRanged+=b.atkRanged; acc.list.push(`${n}: ataques à distância ${b.atkRanged>0?'+':''}${b.atkRanged}`); }
     if(b.ca){ acc.ca+=b.ca; acc.list.push(`${n}: CA ${b.ca>0?'+':''}${b.ca}`); }
     if(b.pp){ acc.pp+=b.pp; acc.list.push(`${n}: Percepção Passiva ${b.pp>0?'+':''}${b.pp}`); }
     if(b.hpL){ acc.hpL+=b.hpL; acc.list.push(`${n}: PV ${b.hpL>0?'+':''}${b.hpL}/nível`); }
     if(b.chk){ for(const k in b.chk){ acc.chk[k]=(acc.chk[k]||0)+b.chk[k]; const ab=ATRIBUTOS.find(x=>x.k===k); acc.list.push(`${n}: testes de ${ab?ab.nome:k} ${b.chk[k]>0?'+':''}${b.chk[k]}`); } }
     if(b.skill){ for(const k in b.skill){ acc.skill[k]=(acc.skill[k]||0)+b.skill[k]; acc.list.push(`${n}: ${k} ${b.skill[k]>0?'+':''}${b.skill[k]}`); } }
-    if(b.sv){ for(const k in b.sv){ acc.sv[k]=(acc.sv[k]||0)+b.sv[k]; const ab=ATRIBUTOS.find(x=>x.k===k); acc.list.push(`${n}: salv. de ${ab?ab.nome:k} ${b.sv[k]>0?'+':''}${b.sv[k]}`); } }
+    if(b.sv){ for(const k in b.sv){ acc.sv[k]=(acc.sv[k]||0)+b.sv[k]; (acc.svSrc[k]=acc.svSrc[k]||[]).push(`${n} ${b.sv[k]>0?'+':''}${b.sv[k]}`); const ab=ATRIBUTOS.find(x=>x.k===k); acc.list.push(`${n}: salv. de ${ab?ab.nome:k} ${b.sv[k]>0?'+':''}${b.sv[k]}`); } }
+    if(b.svAll){ ATRIBUTOS.forEach(a=>{ acc.sv[a.k]=(acc.sv[a.k]||0)+b.svAll; (acc.svSrc[a.k]=acc.svSrc[a.k]||[]).push(`${n} ${b.svAll>0?'+':''}${b.svAll}`); }); acc.list.push(`${n}: todas as salvaguardas ${b.svAll>0?'+':''}${b.svAll}`); }
+    if(b.chkAll){ ATRIBUTOS.forEach(a=>{ acc.chk[a.k]=(acc.chk[a.k]||0)+b.chkAll; }); acc.list.push(`${n}: todos os testes de perícia ${b.chkAll>0?'+':''}${b.chkAll}`); }
     if(b.adv){ b.adv.forEach(t=>{ if(PERICIA_NAMES.includes(t)){ (acc.advSkill[t]=acc.advSkill[t]||[]).push(n); } else acc.advOther.push({t,src:n}); }); }
     if(b.dis){ b.dis.forEach(t=>{ if(PERICIA_NAMES.includes(t)){ (acc.disSkill[t]=acc.disSkill[t]||[]).push(n); } else acc.disOther.push({t,src:n}); }); }
   });
+  // Penalidade de armadura: desvantagem em Furtividade (médias/pesadas indicadas)
+  const _armEl = document.getElementById('sel-armadura');
+  if(_armEl){
+    const a = ARMADURAS.find(x=>x.n===_armEl.value);
+    if(a && a.stealthDis){ (acc.disSkill['Furtividade']=acc.disSkill['Furtividade']||[]).push(`${a.n} (armadura ${(a.cat||'').toLowerCase()})`); }
+  }
+  // Bônus Personalizados (5 linhas livres)
+  for(let i=0;i<5;i++){
+    const tEl=document.getElementById('cb-target-'+i), vEl=document.getElementById('cb-val-'+i);
+    if(!tEl||!vEl) continue;
+    const val=parseInt(vEl.value); if(!val || !tEl.value) continue;
+    const lbl=((document.getElementById('cb-label-'+i)||{}).value||'').trim() || 'Bônus personalizado';
+    const sign=val>0?'+':'';
+    const idx=tEl.value.indexOf(':'); const kind=tEl.value.slice(0,idx), key=tEl.value.slice(idx+1);
+    if(kind==='skill'){ acc.skill[key]=(acc.skill[key]||0)+val; acc.list.push(`${lbl}: ${key} ${sign}${val}`); }
+    else if(kind==='sv'){ acc.sv[key]=(acc.sv[key]||0)+val; (acc.svSrc[key]=acc.svSrc[key]||[]).push(`${lbl} ${sign}${val}`); const ab=ATRIBUTOS.find(x=>x.k===key); acc.list.push(`${lbl}: salv. de ${ab?ab.nome:key} ${sign}${val}`); }
+    else if(kind==='chk'){ acc.chk[key]=(acc.chk[key]||0)+val; const ab=ATRIBUTOS.find(x=>x.k===key); acc.list.push(`${lbl}: testes de ${ab?ab.nome:key} ${sign}${val}`); }
+    else if(kind==='init'){ acc.init+=val; acc.list.push(`${lbl}: Iniciativa ${sign}${val}`); }
+    else if(kind==='ca'){ acc.ca+=val; acc.list.push(`${lbl}: CA ${sign}${val}`); }
+    else if(kind==='pp'){ acc.pp+=val; acc.list.push(`${lbl}: Percepção Passiva ${sign}${val}`); }
+    else if(kind==='hpL'){ acc.hpL+=val; acc.list.push(`${lbl}: PV ${sign}${val}/nível`); }
+  }
   BON = acc;
 }
 
@@ -1236,8 +1578,17 @@ function popListSelects(){
   document.getElementById('sel-qual').innerHTML = op(QUALIDADES);
   document.getElementById('sel-def').innerHTML  = op(DEFEITOS);
 
+  const selMag = document.getElementById('sel-mag');
+  if(selMag){
+    let hm = '<option value="">— escolha um item mágico —</option>';
+    for(const r in ITENS_MAGICOS){
+      hm += `<optgroup label="${r}">` + ITENS_MAGICOS[r].map(n=>`<option${optTitle(n)}>${n}</option>`).join('') + '</optgroup>';
+    }
+    selMag.innerHTML = hm;
+  }
+
   // Caixinha de resumo que aparece ao navegar/passar pelos itens do seletor
-  ['tal','hab','qual','def'].forEach(t=>{
+  ['tal','hab','qual','def','mag'].forEach(t=>{
     const sel = document.getElementById('sel-'+t), prev = document.getElementById('prev-'+t);
     if(!sel || !prev) return;
     const upd = ()=>{ const d = DESC[sel.value]; prev.innerHTML = d ? `<b>${sel.value}:</b> ${d}` : ''; prev.style.display = d ? 'block' : 'none'; };
@@ -1256,7 +1607,7 @@ function addItem(t){
 function removeItem(t,i){ LISTAS[t].splice(i,1); renderListas(); salvar(); }
 function ptOf(t,n){ const m = t==='qual'?QMAP[n] : t==='def'?DMAP[n] : null; return m? (m.p + (m.var?'+':'')) : ''; }
 function renderListas(){
-  ['tal','hab','qual','def'].forEach(t=>{
+  ['tal','hab','qual','def','mag'].forEach(t=>{
     const box = document.getElementById('chips-'+t);
     if(!box) return;
     box.innerHTML = LISTAS[t].length ? LISTAS[t].map((n,i)=>{
@@ -1274,34 +1625,13 @@ function renderListas(){
   el.textContent = saldo;
   el.style.color = saldo<0 ? '#b00020' : 'var(--good)';
 
-  computeBonuses();
-  const bl = document.getElementById('bonusList');
-  if(bl) bl.innerHTML = BON.list.length
-    ? '<ul style="margin:4px 0 0; padding-left:18px;">' + BON.list.map(x=>`<li>${x}</li>`).join('') + '</ul>'
-    : 'Nenhum bônus numérico ativo. Itens com bônus fixo (ex.: Atitude +2 iniciativa, Grande e Forte, Resistente, Couro Curtido) são somados sozinhos nos campos certos da página 1.';
-
-  // painel de Vantagens & Desvantagens
-  const advArr = [], disArr = [];
-  for(const sk in BON.advSkill) advArr.push(`<b>${sk}</b> <span class="src">(${BON.advSkill[sk].join(', ')})</span>`);
-  BON.advOther.forEach(o=>advArr.push(`${o.t} <span class="src">(${o.src})</span>`));
-  for(const sk in BON.disSkill) disArr.push(`<b>${sk}</b> <span class="src">(${BON.disSkill[sk].join(', ')})</span>`);
-  BON.disOther.forEach(o=>disArr.push(`${o.t} <span class="src">(${o.src})</span>`));
-  const av = document.getElementById('advList');
-  if(av) av.innerHTML = advArr.length
-    ? '<ul style="margin:2px 0 0; padding-left:18px;">' + advArr.map(x=>`<li>${x}</li>`).join('') + '</ul>'
-    : '<span class="small">nenhuma vantagem ativa</span>';
-  const dv = document.getElementById('disList');
-  if(dv) dv.innerHTML = disArr.length
-    ? '<ul style="margin:2px 0 0; padding-left:18px;">' + disArr.map(x=>`<li>${x}</li>`).join('') + '</ul>'
-    : '<span class="small">nenhuma desvantagem ativa</span>';
-
   renderDescricoes();
-  recalc();
+  recalc();   // recalc() agora roda computeBonuses() e renderBonusPanels()
 }
 // Descrições dos itens escolhidos, no fim da ficha
 function renderDescricoes(){
   const box = document.getElementById('descBox'); if(!box) return;
-  const grupos = [['Talentos','tal'],['Habilidades de Classe','hab'],['Qualidades','qual'],['Defeitos','def']];
+  const grupos = [['Talentos','tal'],['Habilidades de Classe','hab'],['Itens Mágicos','mag'],['Qualidades','qual'],['Defeitos','def']];
   let html = '';
   grupos.forEach(([titulo,k])=>{
     if(!LISTAS[k].length) return;
@@ -1320,7 +1650,7 @@ function coletar(){
   document.querySelectorAll('[data-k]').forEach(el=>{
     d[el.id] = el.type==='checkbox' ? el.checked : el.value;
   });
-  d.__listas = {tal:LISTAS.tal.slice(), hab:LISTAS.hab.slice(), qual:LISTAS.qual.slice(), def:LISTAS.def.slice()};
+  d.__listas = {tal:LISTAS.tal.slice(), hab:LISTAS.hab.slice(), qual:LISTAS.qual.slice(), def:LISTAS.def.slice(), mag:LISTAS.mag.slice()};
   d.__recursos = RECVALS;
   return d;
 }
@@ -1336,6 +1666,7 @@ function aplicar(d){
     LISTAS.hab  = d.__listas.hab  || [];
     LISTAS.qual = d.__listas.qual || [];
     LISTAS.def  = d.__listas.def  || [];
+    LISTAS.mag  = d.__listas.mag  || [];
   }
   if(d.__recursos) RECVALS = d.__recursos;
   onClasse();
@@ -1397,12 +1728,12 @@ function limpar(){
   localStorage.removeItem(KEY);
   document.querySelectorAll('[data-k]').forEach(el=>{ if(el.type==='checkbox') el.checked=false; else el.value=''; });
   document.getElementById('nivel').value=1;
-  LISTAS.tal=[]; LISTAS.hab=[]; LISTAS.qual=[]; LISTAS.def=[]; RECVALS={};
+  LISTAS.tal=[]; LISTAS.hab=[]; LISTAS.qual=[]; LISTAS.def=[]; LISTAS.mag=[]; RECVALS={};
   onClasse(); renderListas(); recalc();
 }
 
 /* ============ INIT ============ */
-preencherSelects(); montarAtributos(); montarSaves(); montarPericias(); montarAtaques(); popListSelects();
+preencherSelects(); montarAtributos(); montarSaves(); montarPericias(); montarAtaques(); popListSelects(); popArmasArmaduras(); montarExtras();
 document.querySelectorAll('.logo-seal').forEach(s=>{ s.innerHTML = `<img src="${LOGO_PRORPG}" alt="Pró=RPG">`; });
 document.querySelectorAll('.sheet').forEach(s=>{ s.style.setProperty('--wm', `url("${LOGO_PRORPG}")`); });
 if(!loadFromHash()){ try{ aplicar(JSON.parse(localStorage.getItem(KEY))); }catch(e){} }
