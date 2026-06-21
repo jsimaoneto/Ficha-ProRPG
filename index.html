@@ -750,17 +750,29 @@ const DEFEITOS = [
 const TALENTOS_NZ = ['Amigo Importante','Artista Marcial','Ataque Arterial','Atitude','Cicatrizador','Cirurgião','Clareza de Pensamentos','Curandeiro (N0)','Fama','Ilusionista','Intercambista','Leitor Dinâmico','Ligeiro','Mente acima do corpo','Nadador','Olho de Chakra','Oratória','Paranormal de Componentes','Político','Resistência Mental Incipiente','Sintonia Arcana Ritualística','Vastidão Arcana','Vontade de Ferro','Workaholics'];
 
 // HABILIDADES DE CLASSE escolhíveis (Caçador de Demônios, Homem do Oeste, Faz Tudo)
+// PICKER — apenas habilidades que o jogador ESCOLHE (as automáticas por nível são injetadas
+// no fim da ficha por HAB_AUTO_*). Ordem dos livros: Livro do Jogador → Aliança → Suplemento 1.
 const HAB_CLASSE = {
-  'Caçador de Demônios — Aprimoramentos Demoníacos':['Acerto Crítico Aprimorado','Acerto Crítico Supremo','Asas do Caçador','Ataque Evasivo','Chama Sombria Aprimorada','Esquiva Suprema','Imolação Aprimorada','Ínfero Conjurado','Interrupção','Marca Demoníaca Aprimorada','Raio Ocular','Tormento Aprimorado'],
-  'Homem do Oeste — Truques de Pistoleiro':['Aboio','Atirador de Elite','Caçador de Recompensas','Chicote e Relho','Couro Curtido','Couro de Sela','Dinamite e Coquetéis','Doma','Estouro da Boiada','Faca de Arremesso','Ferrador','Mãos de Couro','Mãos de Ferro','Olho de Vaqueiro','Olho que Tudo Vê','Pega de Boi','Pés de Cobra','Pólvora Seca','Tiro de Desarme','Tiro Duplo','Tiro nas Pernas','Vigília do Campeiro'],
-  'Faz Tudo — Geringonças':['Algema de Couro Cru','Bomba de Fumaça de Cozinha','Cabana Rápida','Cola Forte','Corda e Gancho de Arpoaria','Esquema na Cabeça','Filtro de Água','Forno de Campanha','Gazua Universal','Laço Suspenso','Mira Improvisada','Mordaça Silenciosa','Pés de Sapo','Sinalização','Sino de Alarme','Tinta Indelével','Tiro de Advertência','Tirolesa Improvisada','Vidro de Ácido Caseiro','Alçapão de Sucata','Análise de Resíduos','Antídoto Rápido','Calço de Mecanismo','Decifrar Engenho','Estimulante de Marcha','Improviso de Cura','Lubrificante Tático','Pára-quedas de Cortina','Ponte de Pranchas','Reforço Estrutural','Asa-Delta de Lona','Cabo de Aço','Curto-Circuito Diagnosticado','Discurso de Bancada','Distração em Cadeia','Gás Lacrimogêneo Caseiro','Granada de Fragmentação','Mochila Compartilhada','Sabotagem do Eixo','Solvente Quebra-Magia Menor','Carga Demolidora','Manobra Evasiva','Veículo Improvisado','Ferramenta Definitiva','Pulso Magnético','Maestria do Faz Tudo'],
-  'Assassino do Credo — Habilidades':['Mimetismo Assassino','O Credo (Lâmina Oculta)','As Três Regras do Credo','Contra Ataque','Mobilidade Assassina','Parkour','Esquiva Sobrenatural','Segunda Lâmina Oculta','Salto de Fé','Desarme','Ataque Mortal','Contra Ataque Aprimorado','Proeficiente no Ataque','Conectado à Natureza','Rastreador','Treinado para Matar','Lâmina do Sangramento da Fé','Conexão Psíquica com os Ascendentes','Envenenamento Audaz','Assassino Absoluto'],
-  'Espectro — Habilidades & Caminhos':['Toque Espectral','Possessão','Drenagem de Vida','Olhos do Além','Posse Aprimorada','Possessão Veloz','Salto entre Corpos','Memória Roubada','Posse Duradoura','Drenagem em Massa','Posse Profunda','Forma Livre Perfeita','Senhor dos Corpos','Espectro da Paz','Espectro da Guerra','Espectro do Poder'],
-  'Fantasma — Manobras Espectrais':['Golpe Fantasma','Passo entre Véus','Correntes do Além','Grito do Morto','Armadura de Almas','Furto de Energia','Eco do Guerreiro','Memória Muscular','Barreira Espectral','Palavras do Guerreiro','Névoa Persistente','Domínio Territorial'],
-  'Homem do Oeste — Trilhas (Subclasses)':['Tiro Sujo','Conversa Mole','Sempre Tem uma Saída','Bote da Cascavel','Lenda Fora da Lei','Distintivo de Autoridade','Tiro de Advertência (Xerife)','Mão Firme da Lei','Justiceiro Implacável','A Lei em Pessoa','Faro de Caçador','Disparo de Captura','Interrogador','Mestre da Contenção','Caçada Definitiva'],
-  'Paladino — Juramento da Ordem Suprema (Subclasse)':['Magias do Juramento da Ordem Suprema','Aprisionar (Canalizar Divindade)','Aura de Proteção AO (Canalizar Divindade)','Marca da Ordem','Garanhão de Guerra Divino','O Longo Braço da Justiça','Mão de Ordem','Presença de Ao'],
-  'Clérigo — Domínio da Ordem Suprema (Subclasse)':['Magias de Domínio da Ordem Suprema','Disciplina Divina','Escudo da Ordem','Vontade de Ao (Canalizar Divindade)','Autoridade Suprema','Sentinela da Ordem','Equilíbrio Cósmico'],
+  // ===== A ALIANÇA DE HERÓIS =====
+  'Caçador de Demônios — Aprimoramentos Demoníacos (escolha a partir do 4º nível)':['Acerto Crítico Aprimorado','Acerto Crítico Supremo','Asas do Caçador','Ataque Evasivo','Chama Sombria Aprimorada','Esquiva Suprema','Imolação Aprimorada','Ínfero Conjurado','Interrupção','Marca Demoníaca Aprimorada','Raio Ocular','Tormento Aprimorado'],
+  // ===== SUPLEMENTO 1 =====
+  'Homem do Oeste — Truques de Pistoleiro (escolha a partir do 3º nível)':['Aboio','Atirador de Elite','Caçador de Recompensas','Chicote e Relho','Couro Curtido','Couro de Sela','Dinamite e Coquetéis','Doma','Estouro da Boiada','Faca de Arremesso','Ferrador','Mãos de Couro','Mãos de Ferro','Olho de Vaqueiro','Olho que Tudo Vê','Pega de Boi','Pés de Cobra','Pólvora Seca','Tiro de Desarme','Tiro Duplo','Tiro nas Pernas','Vigília do Campeiro'],
+  'Faz Tudo — Geringonças (escolha conforme o nível)':['Algema de Couro Cru','Bomba de Fumaça de Cozinha','Cabana Rápida','Cola Forte','Corda e Gancho de Arpoaria','Esquema na Cabeça','Filtro de Água','Forno de Campanha','Gazua Universal','Laço Suspenso','Mira Improvisada','Mordaça Silenciosa','Pés de Sapo','Sinalização','Sino de Alarme','Tinta Indelével','Tiro de Advertência','Tirolesa Improvisada','Vidro de Ácido Caseiro','Alçapão de Sucata','Análise de Resíduos','Antídoto Rápido','Calço de Mecanismo','Decifrar Engenho','Estimulante de Marcha','Improviso de Cura','Lubrificante Tático','Pára-quedas de Cortina','Ponte de Pranchas','Reforço Estrutural','Asa-Delta de Lona','Cabo de Aço','Curto-Circuito Diagnosticado','Discurso de Bancada','Distração em Cadeia','Gás Lacrimogêneo Caseiro','Granada de Fragmentação','Mochila Compartilhada','Sabotagem do Eixo','Solvente Quebra-Magia Menor','Carga Demolidora','Manobra Evasiva','Veículo Improvisado','Ferramenta Definitiva','Pulso Magnético','Maestria do Faz Tudo'],
+  'Fantasma — Manobras Espectrais (escolha conforme o nível)':['Golpe Fantasma','Passo entre Véus','Correntes do Além','Grito do Morto','Armadura de Almas','Furto de Energia','Eco do Guerreiro','Memória Muscular','Barreira Espectral','Palavras do Guerreiro','Névoa Persistente','Domínio Territorial'],
 };
+// AUTOMÁTICAS POR NÍVEL — injetadas no fim da ficha conforme o nível na classe (não vão ao picker)
+const HAB_AUTO_CLASSE = {
+  'Assassino do Credo':[{n:'Mimetismo Assassino',l:1},{n:'O Credo (Lâmina Oculta)',l:2},{n:'As Três Regras do Credo',l:2},{n:'Contra Ataque',l:3},{n:'Mobilidade Assassina',l:3},{n:'Parkour',l:4},{n:'Esquiva Sobrenatural',l:5},{n:'Segunda Lâmina Oculta',l:5},{n:'Salto de Fé',l:6},{n:'Desarme',l:6},{n:'Ataque Mortal',l:7},{n:'Contra Ataque Aprimorado',l:9},{n:'Proeficiente no Ataque',l:10},{n:'Conectado à Natureza',l:11},{n:'Rastreador',l:13},{n:'Treinado para Matar',l:14},{n:'Lâmina do Sangramento da Fé',l:15},{n:'Conexão Psíquica com os Ascendentes',l:17},{n:'Envenenamento Audaz',l:18},{n:'Assassino Absoluto',l:20}],
+  'Espectro':[{n:'Toque Espectral',l:1},{n:'Possessão',l:1},{n:'Drenagem de Vida',l:2},{n:'Olhos do Além',l:2},{n:'Posse Aprimorada',l:3},{n:'Possessão Veloz',l:5},{n:'Salto entre Corpos',l:7},{n:'Memória Roubada',l:9},{n:'Posse Duradoura',l:10},{n:'Drenagem em Massa',l:13},{n:'Posse Profunda',l:15},{n:'Forma Livre Perfeita',l:18},{n:'Senhor dos Corpos',l:20}]
+};
+const HAB_AUTO_SUB = {
+  'Trilha do Fora da Lei':[{n:'Tiro Sujo',l:3},{n:'Conversa Mole',l:3},{n:'Sempre Tem uma Saída',l:7},{n:'Bote da Cascavel',l:11},{n:'Lenda Fora da Lei',l:17}],
+  'Trilha do Xerife':[{n:'Distintivo de Autoridade',l:3},{n:'Tiro de Advertência (Xerife)',l:3},{n:'Mão Firme da Lei',l:7},{n:'Justiceiro Implacável',l:11},{n:'A Lei em Pessoa',l:17}],
+  'Trilha do Caçador de Recompensas':[{n:'Faro de Caçador',l:3},{n:'Disparo de Captura',l:3},{n:'Interrogador',l:7},{n:'Mestre da Contenção',l:11},{n:'Caçada Definitiva',l:17}],
+  'Juramento da Ordem Suprema':[{n:'Magias do Juramento da Ordem Suprema',l:3},{n:'Aprisionar (Canalizar Divindade)',l:3},{n:'Aura de Proteção AO (Canalizar Divindade)',l:3},{n:'Marca da Ordem',l:3},{n:'Garanhão de Guerra Divino',l:7},{n:'O Longo Braço da Justiça',l:10},{n:'Mão de Ordem',l:15},{n:'Presença de Ao',l:20}],
+  'Domínio da Ordem Suprema':[{n:'Magias de Domínio da Ordem Suprema',l:1},{n:'Disciplina Divina',l:1},{n:'Escudo da Ordem',l:1},{n:'Vontade de Ao (Canalizar Divindade)',l:2},{n:'Autoridade Suprema',l:6},{n:'Sentinela da Ordem',l:8},{n:'Equilíbrio Cósmico',l:17}]
+};
+const AUTO_NAMES = new Set([].concat(...Object.values(HAB_AUTO_CLASSE), ...Object.values(HAB_AUTO_SUB)).map(o=>o.n));
 
 // MAPA DE EFEITOS — aplicados automaticamente à ficha ao escolher o item.
 //  Numéricos: init=iniciativa · ca=Classe de Armadura · pp=Percepção Passiva · hpL=PV por nível
@@ -1472,6 +1484,8 @@ function refreshMaestrias(){
 }
 function vById(id){ const e=document.getElementById(id); return e?e.value:''; }
 function popArmasArmaduras(){
+  ARMADURAS.sort((a,b)=>a.n.localeCompare(b.n,'pt',{sensitivity:'base'}));
+  ARMAS.sort((a,b)=>a.n.localeCompare(b.n,'pt',{sensitivity:'base'}));
   const sa = document.getElementById('sel-armadura');
   if(sa) sa.innerHTML = ARMADURAS.map(a=>{
     const et = a.base==null ? '' : ` — CA ${a.base}${a.cap===0?'':(a.cap?`+Des(máx ${a.cap})`:'+Des')}${a.cat?` · ${a.cat}`:''}`;
@@ -1857,6 +1871,7 @@ function recalc(){
   refreshMaestrias();
   renderMulti();
   applyLocks();
+  renderDescricoes();   // atualiza as habilidades automáticas por nível ao subir/descer
   salvar();
 }
 
@@ -2021,14 +2036,30 @@ function renderListas(){
   renderDescricoes();
   recalc();   // recalc() agora roda computeBonuses() e renderBonusPanels()
 }
+// Habilidades de classe GANHAS AUTOMATICAMENTE por nível (não escolhidas) — listadas conforme o nível
+function autoHabHtml(){
+  const blocos=[];
+  classesArr().forEach(x=>{
+    const cls=baseClasse(x.c), sub=baseClasse(x.sub), lv=x.lv||0;
+    const linhas=[];
+    (HAB_AUTO_CLASSE[cls]||[]).forEach(f=>{ if(f.l<=lv) linhas.push(f); });
+    if(sub && HAB_AUTO_SUB[sub]) HAB_AUTO_SUB[sub].forEach(f=>{ if(f.l<=lv) linhas.push(f); });
+    if(!linhas.length) return;
+    linhas.sort((a,b)=>a.l-b.l);
+    const itens = linhas.map(f=>`<p class="descitem"><b>N${f.l} · ${f.n}.</b> ${DESC[f.n]||''}</p>`).join('');
+    blocos.push(`<div class="descgrupo"><h4>⚙️ ${x.c} — Habilidades automáticas (até o Nível ${lv})</h4>${itens}</div>`);
+  });
+  return blocos.join('');
+}
 // Descrições dos itens escolhidos, no fim da ficha
 function renderDescricoes(){
   const box = document.getElementById('descBox'); if(!box) return;
-  const grupos = [['Talentos','tal'],['Habilidades de Classe','hab'],['Itens Mágicos','mag'],['Qualidades','qual'],['Defeitos','def']];
-  let html = '';
+  const grupos = [['Talentos','tal'],['Habilidades de Classe (escolhidas)','hab'],['Itens Mágicos','mag'],['Qualidades','qual'],['Defeitos','def']];
+  let html = autoHabHtml();   // primeiro as automáticas por nível
   grupos.forEach(([titulo,k])=>{
-    if(!LISTAS[k].length) return;
-    html += `<div class="descgrupo"><h4>${titulo}</h4>` + LISTAS[k].map(n=>{
+    const lista = k==='hab' ? LISTAS.hab.filter(n=>!AUTO_NAMES.has(n)) : LISTAS[k];
+    if(!lista.length) return;
+    html += `<div class="descgrupo"><h4>${titulo}</h4>` + lista.map(n=>{
       const d = DESC[n] || '<i>(resumo não cadastrado — consulte o livro correspondente)</i>';
       return `<p class="descitem"><b>${n}.</b> ${d}</p>`;
     }).join('') + '</div>';
@@ -2063,6 +2094,8 @@ function aplicar(d){
     LISTAS.mag  = d.__listas.mag  || [];
   }
   if(d.__recursos) RECVALS = d.__recursos;
+  // migração: remove das escolhidas as habilidades que agora são automáticas por nível
+  LISTAS.hab = LISTAS.hab.filter(n=>!AUTO_NAMES.has(n));
   // procedência por nível (fichas antigas: itens sem registro entram como Nível 0)
   PROV = {tal:{}, hab:{}, qual:{}, def:{}, mag:{}};
   const pv = d.__prov || {};
