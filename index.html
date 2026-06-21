@@ -144,6 +144,7 @@
   .mccard .ch{display:flex; align-items:center; gap:8px; margin-bottom:4px;}
   .mccard .mini{width:34px; height:34px; flex:none;}
   .mccard .mini img{width:100%; height:100%; object-fit:contain; border-radius:50%;}
+  .mccard .mini .medal-svg{width:100%; height:100%; filter:none;}
   .mccard .cn{font-family:var(--display); font-size:12.5px; font-weight:800; color:var(--accent); line-height:1.1;}
   .mccard .cl{font-size:9.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.3px;}
   .mccard .det{font-size:10px; color:var(--ink); margin:2px 0;}
@@ -153,6 +154,22 @@
   .slots{display:flex; flex-wrap:wrap; gap:5px; margin-top:5px;}
   .slotpill{background:#fff; border:1px solid var(--accent2); border-radius:8px; padding:2px 8px; font-size:10.5px; font-weight:700; color:var(--accent);}
   .slotpill span{color:var(--muted); font-weight:400;}
+  .hdlist{font-size:10.5px; color:var(--ink); margin-top:4px;}
+  .hdlist b{color:var(--accent);}
+
+  /* Progressão de nível e travas */
+  .progress{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .lvlbig{font-family:var(--display); font-size:24px; font-weight:800; color:var(--accent); line-height:1;}
+  .lvlcap{font-size:9px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); font-weight:700;}
+  .lvlbtn{border:none; border-radius:8px; padding:8px 14px; cursor:pointer; font-weight:800; font-size:13px; color:#fff;}
+  .lvlbtn.up{background:var(--good);} .lvlbtn.up:hover{background:#3c7a3f;}
+  .lvlbtn.dn{background:#8a4b16;} .lvlbtn.dn:hover{background:#a85c1d;}
+  .lvllast{font-size:11px; color:var(--ink);} .lvllast b{color:var(--accent);}
+  .creationtag{background:var(--accent2); color:#2a2102; font-weight:800; font-size:10px; padding:2px 8px; border-radius:8px;}
+  input.locked,select.locked{background:#efe7d6 !important; color:#7a6f5c; cursor:not-allowed; border-style:dashed;}
+  .lockmsg{display:none; margin-top:8px; padding:8px 11px; border-radius:7px; font-size:11.5px; font-weight:600;
+    background:#fdecea; border:1px solid #e6a6a0; border-left:4px solid #b00020; color:#7a1410;}
+  .lockmsg.ok{background:#eaf6ea; border-color:#a9d6ab; border-left-color:var(--good); color:#235a26;}
 
   .small{font-size:10px; color:var(--muted);}
 
@@ -274,9 +291,17 @@
     #toolbar{display:none !important;}
     .sheet{box-shadow:none; margin:0 auto; width:auto; min-height:auto; padding:0;}
     input,select,textarea{border:1px solid #999; background:#fff;}
+    input.locked,select.locked{background:#fff !important; color:var(--ink); border-style:solid;}
     .readonly,.line .val{background:#f0f0f0 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
     .ability,.statbox,.panel{-webkit-print-color-adjust:exact; print-color-adjust:exact;}
     textarea{min-height:auto;}
+    /* compactação para caber bem na folha A4 */
+    body{font-size:11.3px;}
+    .panel{padding:5px 7px; margin-bottom:6px !important;}
+    .panel h3{font-size:10px; margin-bottom:4px;}
+    .ability .mod{font-size:22px;} .statbox .big{font-size:19px;}
+    .mccard,.ability,.statbox,.rescoin,.chip,.descitem,.mccard,.slotpill{break-inside:avoid;}
+    .panel,.descgrupo{break-inside:avoid-page;}
     .noprint{display:none !important;}
     .chip button{display:none;}
     .chip{border:1px solid #999;}
@@ -323,10 +348,10 @@
     <div class="row" style="grid-template-columns:2fr 1.4fr 1fr;">
       <div class="field"><label>Nome do Personagem</label><input id="nome" data-k></div>
       <div class="field"><label>Classe</label>
-        <select id="classe" data-k onchange="onClasse()"></select>
+        <select id="classe" data-k onchange="onClasse(true)"></select>
       </div>
       <div class="field"><label>Nível <span class="small">(nesta classe)</span></label>
-        <input id="nivel" type="number" min="1" max="20" value="1" data-k oninput="recalc()">
+        <input id="nivel" type="number" min="0" max="20" value="1" data-k oninput="recalc()">
       </div>
     </div>
     <div class="row" style="grid-template-columns:1.3fr 1.3fr 1.3fr 1fr 1fr; margin-top:8px;">
@@ -355,6 +380,18 @@
       <div class="field"><label>Jogador</label><input id="jogador" data-k></div>
     </div>
     <div class="comp" id="compClasses"></div>
+  </div>
+
+  <!-- Progressão de nível -->
+  <div class="panel noprint" style="margin-bottom:9px;">
+    <h3>🔼 Progressão de Nível <span class="small">— Nível 0 (Criação): tudo editável · do Nível 1 em diante, sobe sempre a ÚLTIMA classe</span></h3>
+    <div class="progress">
+      <div style="text-align:center;"><div class="lvlcap">Nível total</div><div class="lvlbig" id="lvlTotal">0</div></div>
+      <button class="lvlbtn dn" onclick="descerNivel()">▼ Descer nível</button>
+      <button class="lvlbtn up" onclick="subirNivel()">▲ Subir nível</button>
+      <div class="lvllast" id="lvlLast"></div>
+    </div>
+    <div class="lockmsg" id="lockMsg"></div>
   </div>
 
   <!-- Multiclasse -->
@@ -1338,7 +1375,7 @@ function classesArr(){
   [2,3].forEach(i=>{ const c=vById('mc-classe-'+i); if(c) arr.push({c, lv:parseInt(vById('mc-nivel-'+i))||0, sub:vById('mc-sub-'+i), idx:i}); });
   return arr;
 }
-function totalLevel(){ const t=classesArr().reduce((s,x)=>s+(x.lv||0),0); return Math.max(1,t); }
+function totalLevel(){ return classesArr().reduce((s,x)=>s+(x.lv||0),0); }  // 0 = Nível Zero (Criação)
 function hitDiceStr(){
   const tally={};
   classesArr().forEach(({c,lv})=>{ const d=(CLASSES[baseClasse(c)]||{}).die; if(d&&lv) tally[d]=(tally[d]||0)+lv; });
@@ -1386,7 +1423,7 @@ function montarAtributos(){
       <div class="nm">${a.nome}</div>
       <div class="mod" id="mod-${a.k}">+0</div>
       <input class="score" id="sc-${a.k}" type="number" min="1" max="30" data-k
-             oninput="recalc()" placeholder="10">
+             oninput="recalc()" onmousedown="if(this.readOnly){aoEditarAtributo();}" placeholder="10">
       <div class="sub">${a.abrev}</div>
     </div>`).join('');
 }
@@ -1504,7 +1541,7 @@ function montarMulti(){
     <div class="mcrow" id="mcrow-${i}" style="display:none;">
       <div class="field"><label>Classe ${i}</label><select id="mc-classe-${i}" data-k onchange="onMultiClasse(${i})">${opts}</select></div>
       <div class="field"><label>Subclasse ${i}</label><input id="mc-sub-${i}" list="dl-sub-${i}" data-k oninput="recalc()"><datalist id="dl-sub-${i}"></datalist></div>
-      <div class="field"><label>Nível</label><input id="mc-nivel-${i}" type="number" min="1" max="20" data-k oninput="recalc()"></div>
+      <div class="field"><label>Nível</label><input id="mc-nivel-${i}" type="number" min="0" max="20" data-k oninput="recalc()"></div>
       <button class="rowdel" title="remover esta classe" onclick="removeMulti(${i})">×</button>
     </div>`).join('');
 }
@@ -1554,6 +1591,11 @@ function renderMulti(){
   const info = document.getElementById('mcInfo');
   if(info){
     let html='';
+    if(arr.length){
+      const perClass = arr.map(x=>{ const d=(CLASSES[baseClasse(x.c)]||{}).die;
+        return `<b>${baseClasse(x.c)}</b> ${(x.lv&&d)?(x.lv+'d'+d):(d?('0d'+d):'—')}`; }).join(' · ');
+      html += `<div class="hdlist">🎲 Dados de Vida por classe: ${perClass} &nbsp;→&nbsp; Total: <b>${hitDiceStr()}</b></div>`;
+    }
     if(arr.length>=2){
       html += '<div class="small" style="margin-top:7px;">Pré-requisitos (Livro do Jogador): ' +
         arr.map(x=>{ const b=baseClasse(x.c), pr=prereqClasse(b);
@@ -1592,6 +1634,85 @@ function renderMulti(){
   }
 }
 
+/* ====== PROGRESSÃO DE NÍVEL E TRAVAS (regras do PHB 2024) ====== */
+// Procedência: registra em que nível total cada item foi adicionado (p/ desfazer ao descer de nível)
+let PROV = {tal:{}, hab:{}, qual:{}, def:{}, mag:{}};
+function avisar(msg, ok){
+  const b=document.getElementById('lockMsg'); if(!b) return;
+  b.className='lockmsg'+(ok?' ok':''); b.textContent=(ok?'✓ ':'🔒 ')+msg; b.style.display='block';
+  clearTimeout(b._t); b._t=setTimeout(()=>{ b.style.display='none'; }, 7000);
+}
+function lastClassIdx(){
+  if(mcShown[3] && vById('mc-classe-3')) return 3;
+  if(mcShown[2] && vById('mc-classe-2')) return 2;
+  return 1;
+}
+function classLevelOf(idx){ return idx===1 ? (parseInt(vById('nivel'))||0) : (parseInt(vById('mc-nivel-'+idx))||0); }
+function setClassLevel(idx,v){ const e=document.getElementById(idx===1?'nivel':('mc-nivel-'+idx)); if(e) e.value=v; }
+function nomeUltimaClasse(){ const idx=lastClassIdx(); const c = idx===1?vById('classe'):vById('mc-classe-'+idx); return c||''; }
+function subirNivel(){
+  if(totalLevel()>=20){ avisar('Nível máximo de personagem (20) já atingido.'); return; }
+  const idx=lastClassIdx();
+  const c = idx===1?vById('classe'):vById('mc-classe-'+idx);
+  if(!c){ avisar('Você está no Nível 0 (Criação). Escolha primeiro a 1ª classe no cabeçalho — isso te leva ao Nível 1. Para uma nova classe, use “+ Adicionar outra classe”.'); return; }
+  setClassLevel(idx, classLevelOf(idx)+1);
+  recalc(); salvar();
+  avisar('Subiu para o Nível '+totalLevel()+' como '+baseClasse(c)+'. Adicione agora as escolhas referentes a este nível desta classe.', true);
+}
+function itensDoNivel(L){
+  const out=[];
+  ['tal','hab','qual','def','mag'].forEach(t=>{ LISTAS[t].forEach(n=>{ if((PROV[t][n]||0)===L) out.push(n); }); });
+  return out;
+}
+function removerItensDoNivel(L){
+  ['tal','hab','qual','def','mag'].forEach(t=>{
+    LISTAS[t] = LISTAS[t].filter(n=>{ if((PROV[t][n]||0)===L){ delete PROV[t][n]; return false; } return true; });
+  });
+}
+function descerNivel(){
+  const tot=totalLevel();
+  if(tot<=0){ avisar('A ficha já está no Nível 0 (Criação).'); return; }
+  const novo=tot-1;
+  const rem=itensDoNivel(tot);
+  let msg='Descer para o Nível '+novo+'?';
+  if(rem.length) msg+='\n\nIsto vai REMOVER as escolhas feitas no Nível '+tot+':\n• '+rem.join('\n• ');
+  if(novo===0) msg+='\n\nA ficha voltará ao Nível 0 (Criação) e os ATRIBUTOS serão destravados.';
+  if(!confirm(msg)) return;
+  removerItensDoNivel(tot);
+  const idx=lastClassIdx();
+  const nl=classLevelOf(idx)-1;
+  if(nl<=0 && idx!==1){ removeMulti(idx); }   // classe extra zerada: remove
+  else setClassLevel(idx, Math.max(0,nl));
+  renderListas(); recalc(); salvar();
+  avisar('Ficha agora no Nível '+totalLevel()+'.'+(rem.length?(' Removidas: '+rem.join(', ')+'.'):''), true);
+}
+// Trava os atributos fora do Nível 0; trava o nível das classes que não são a última
+function applyLocks(){
+  const criacao = totalLevel()===0;
+  ATRIBUTOS.forEach(a=>{
+    const e=document.getElementById('sc-'+a.k); if(!e) return;
+    if(criacao){ e.readOnly=false; e.classList.remove('locked'); }
+    else { e.readOnly=true; e.classList.add('locked'); }
+  });
+  const ult=lastClassIdx();
+  [['nivel',1],['mc-nivel-2',2],['mc-nivel-3',3]].forEach(([id,idx])=>{
+    const e=document.getElementById(id); if(!e) return;
+    const ativa = idx===1 ? true : (mcShown[idx] && vById('mc-classe-'+idx));
+    if(ativa && idx!==ult){ e.readOnly=true; e.classList.add('locked'); }
+    else { e.readOnly=false; e.classList.remove('locked'); }
+  });
+  // displays do painel de progressão
+  const lt=document.getElementById('lvlTotal'); if(lt) lt.innerHTML = criacao ? '0' : totalLevel();
+  const ll=document.getElementById('lvlLast');
+  if(ll){ const c=nomeUltimaClasse(); ll.innerHTML = criacao
+    ? '<span class="creationtag">NÍVEL 0 — CRIAÇÃO</span> atributos liberados; escolha a 1ª classe para começar.'
+    : (c?`Sobe a última classe: <b>${baseClasse(c)}</b> (Nível ${classLevelOf(lastClassIdx())} nela)`:''); }
+}
+function aoEditarAtributo(){   // chamado quando o usuário tenta editar um atributo travado
+  if(totalLevel()>0){ avisar('Atributos só podem ser editados no Nível 0 (Criação). Para alterá-los, desça a ficha até o Nível 0.'); return false; }
+  return true;
+}
+
 /* ============ EVENTOS / CÁLCULO ============ */
 function baseClasse(c){ return (c||'').replace(/\s*[★✦]\s*$/,'').trim(); }
 function medal(inner){
@@ -1622,11 +1743,13 @@ function renderRecursos(c){
       <div class="rin"><input data-rname="${r.n}" data-rfield="a" value="${va}" placeholder="atual"> / <input data-rname="${r.n}" data-rfield="m" value="${vm}" placeholder="máx"></div></div>`;
   }).join('');
 }
-function onClasse(){
+function onClasse(userAction){
   const c = document.getElementById('classe').value;
   const info = CLASSES[c];
   const dl = document.getElementById('dl-sub');
   dl.innerHTML = info && info.sub.length ? info.sub.map(s=>`<option>${s}</option>`).join('') : '';
+  // ao ESCOLHER (ação do usuário) a 1ª classe, sai do Nível 0 (Criação) para o Nível 1
+  if(userAction && c && (parseInt(vById('nivel'))||0)<1) document.getElementById('nivel').value=1;
   renderEmblem(c);
   renderRecursos(c);
   recalc();
@@ -1733,6 +1856,7 @@ function recalc(){
   renderBonusPanels();
   refreshMaestrias();
   renderMulti();
+  applyLocks();
   salvar();
 }
 
@@ -1854,11 +1978,26 @@ function popListSelects(){
 function addItem(t){
   const sel = document.getElementById('sel-'+t);
   if(!sel.value) return;
-  LISTAS[t].push(sel.value);
+  const nome = sel.value;
+  // TRAVA: habilidade de classe precisa pertencer a uma classe presente na ficha
+  if(t==='hab'){
+    if(totalLevel()===0){ avisar('No Nível 0 (Criação) você ainda não tem nível de classe. Suba para o Nível 1 (escolha uma classe) para adicionar Habilidades de Classe.'); return; }
+    const cls = classOfGroup(habGroupOf(nome));
+    if(cls){
+      const presentes = classesArr().map(x=>baseClasse(x.c));
+      if(!presentes.includes(cls)){
+        avisar('“'+nome+'” é da classe '+cls+', que não está na sua ficha. Adicione a classe '+cls+' (multiclasse) para poder escolher esta habilidade.'); return;
+      }
+    }
+  }
+  // TRAVA: não repetir item já escolhido
+  if(LISTAS[t].includes(nome)){ avisar('“'+nome+'” já está na ficha.'); sel.value=''; return; }
+  LISTAS[t].push(nome);
+  PROV[t][nome] = totalLevel();   // registra o nível em que foi adicionado
   sel.value='';
   renderListas(); salvar();
 }
-function removeItem(t,i){ LISTAS[t].splice(i,1); renderListas(); salvar(); }
+function removeItem(t,i){ const n=LISTAS[t][i]; if(n) delete PROV[t][n]; LISTAS[t].splice(i,1); renderListas(); salvar(); }
 function ptOf(t,n){ const m = t==='qual'?QMAP[n] : t==='def'?DMAP[n] : null; return m? (m.p + (m.var?'+':'')) : ''; }
 function renderListas(){
   ['tal','hab','qual','def','mag'].forEach(t=>{
@@ -1906,6 +2045,7 @@ function coletar(){
   });
   d.__listas = {tal:LISTAS.tal.slice(), hab:LISTAS.hab.slice(), qual:LISTAS.qual.slice(), def:LISTAS.def.slice(), mag:LISTAS.mag.slice()};
   d.__recursos = RECVALS;
+  d.__prov = PROV;
   return d;
 }
 function aplicar(d){
@@ -1923,6 +2063,14 @@ function aplicar(d){
     LISTAS.mag  = d.__listas.mag  || [];
   }
   if(d.__recursos) RECVALS = d.__recursos;
+  // procedência por nível (fichas antigas: itens sem registro entram como Nível 0)
+  PROV = {tal:{}, hab:{}, qual:{}, def:{}, mag:{}};
+  const pv = d.__prov || {};
+  ['tal','hab','qual','def','mag'].forEach(t=>{
+    LISTAS[t].forEach(n=>{ PROV[t][n] = (pv[t] && typeof pv[t][n]==='number') ? pv[t][n] : 0; });
+  });
+  // visibilidade das classes extras conforme dados carregados
+  mcShown[2] = !!d['mc-classe-2']; mcShown[3] = !!d['mc-classe-3'];
   onClasse();
   renderListas();
 }
@@ -1981,9 +2129,10 @@ function limpar(){
   if(!confirm('Apagar todos os campos desta ficha?')) return;
   localStorage.removeItem(KEY);
   document.querySelectorAll('[data-k]').forEach(el=>{ if(el.type==='checkbox') el.checked=false; else el.value=''; });
-  document.getElementById('nivel').value=1;
   LISTAS.tal=[]; LISTAS.hab=[]; LISTAS.qual=[]; LISTAS.def=[]; LISTAS.mag=[]; RECVALS={};
+  PROV={tal:{},hab:{},qual:{},def:{},mag:{}};
   mcShown={2:false,3:false}; syncMulti();
+  document.getElementById('nivel').value=0;   // volta ao Nível 0 (Criação)
   onClasse(); renderListas(); recalc();
 }
 
