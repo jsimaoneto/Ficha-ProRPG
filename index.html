@@ -131,6 +131,29 @@
   .cbrow select{flex:1;}
   .cbrow input[type=number]{flex:0 0 60px; text-align:center; font-weight:700;}
 
+  /* Multiclasse */
+  .mcrow{display:flex; gap:8px; align-items:flex-end; margin-top:7px;}
+  .mcrow .field{flex:1;}
+  .mcrow .field:nth-child(3){flex:0 0 84px;}
+  .mcbtn{background:#3a4f6b; color:#fff; border:1px solid #27374d; border-radius:6px; padding:6px 12px; cursor:pointer; font-weight:700; font-size:11.5px; margin-top:7px;}
+  .mcbtn:hover{background:#4c668c;}
+  .comp{font-family:var(--display); font-size:12px; color:var(--accent); font-weight:700; margin-top:7px; letter-spacing:.3px;}
+  .comp .tt{background:var(--hl); border-radius:8px; padding:1px 7px; color:var(--ink);}
+  .mcgrid{display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;}
+  .mccard{flex:1 1 180px; border:2px solid var(--accent2); border-radius:10px; background:linear-gradient(180deg,#fffdf7,#f6ecd2); padding:7px 9px; min-width:170px;}
+  .mccard .ch{display:flex; align-items:center; gap:8px; margin-bottom:4px;}
+  .mccard .mini{width:34px; height:34px; flex:none;}
+  .mccard .mini img{width:100%; height:100%; object-fit:contain; border-radius:50%;}
+  .mccard .cn{font-family:var(--display); font-size:12.5px; font-weight:800; color:var(--accent); line-height:1.1;}
+  .mccard .cl{font-size:9.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.3px;}
+  .mccard .det{font-size:10px; color:var(--ink); margin:2px 0;}
+  .mccard .feats{font-size:10px; color:var(--ink); margin-top:3px;}
+  .mccard .feats b{color:var(--accent);}
+  .mcwarn{color:#b00020; font-weight:700;} .mcok{color:var(--good); font-weight:700;}
+  .slots{display:flex; flex-wrap:wrap; gap:5px; margin-top:5px;}
+  .slotpill{background:#fff; border:1px solid var(--accent2); border-radius:8px; padding:2px 8px; font-size:10.5px; font-weight:700; color:var(--accent);}
+  .slotpill span{color:var(--muted); font-weight:400;}
+
   .small{font-size:10px; color:var(--muted);}
 
   .selprev{margin-top:6px; padding:6px 9px; font-size:10.5px; line-height:1.35; color:var(--ink); background:#fff8e6; border:1px solid var(--accent2); border-left:3px solid var(--accent); border-radius:5px;}
@@ -302,7 +325,7 @@
       <div class="field"><label>Classe</label>
         <select id="classe" data-k onchange="onClasse()"></select>
       </div>
-      <div class="field"><label>Nível (1–20)</label>
+      <div class="field"><label>Nível <span class="small">(nesta classe)</span></label>
         <input id="nivel" type="number" min="1" max="20" value="1" data-k oninput="recalc()">
       </div>
     </div>
@@ -331,6 +354,16 @@
       </div>
       <div class="field"><label>Jogador</label><input id="jogador" data-k></div>
     </div>
+    <div class="comp" id="compClasses"></div>
+  </div>
+
+  <!-- Multiclasse -->
+  <div class="panel" style="margin-bottom:9px;">
+    <h3>⚔️ Multiclasse <span class="small">— combine até 3 classes; a proficiência e os PV usam o nível total</span></h3>
+    <div id="multiRows"></div>
+    <button class="mcbtn" id="addMcBtn" onclick="addMulti()">+ Adicionar outra classe</button>
+    <div id="mcInfo"></div>
+    <div class="mcgrid" id="mcCards"></div>
   </div>
 
   <!-- Atributos -->
@@ -1278,7 +1311,65 @@ const LOGO_PRORPG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeAAAAHgCAYAA
 /* ============ FÓRMULAS ============ */
 const mod = s => { s=parseInt(s); return isNaN(s)?0:Math.floor((s-10)/2); };
 const fmt = n => (n>=0?'+':'') + n;
-const profByLevel = lv => { lv=parseInt(lv)||1; return 1 + Math.ceil(lv/4); }; // 1-4:+2 ... 17-20:+6
+const profByLevel = lv => { lv=parseInt(lv)||1; if(lv>20)lv=20; return 1 + Math.ceil(lv/4); }; // 1-4:+2 ... 17-20:+6
+
+/* ====== MULTICLASSE (regras do Livro do Jogador 2024) ====== */
+// Atributo primário exigido (≥13) para multiclassar — oficiais. '|' = qualquer um dos dois serve.
+const PRIMARIO = {
+  'Bárbaro':['for'], 'Bardo':['car'], 'Bruxo':['car'], 'Clérigo':['sab'], 'Druida':['sab'],
+  'Feiticeiro':['car'], 'Guardião':['des','sab'], 'Guerreiro':['for|des'], 'Ladino':['des'],
+  'Mago':['int'], 'Monge':['des','sab'], 'Paladino':['for','car']
+};
+// Fração de nível que conta para o nível de conjurador multiclasse
+const CASTERFRAC = { 'Bardo':1,'Clérigo':1,'Druida':1,'Feiticeiro':1,'Mago':1,'Guardião':.5,'Paladino':.5 };
+// Tabela "Conjurador Multiclasse: Espaços de Magia por Círculo" (níveis 1–20)
+const MULTI_SLOTS = {
+  1:[2],2:[3],3:[4,2],4:[4,3],5:[4,3,2],6:[4,3,3],7:[4,3,3,1],8:[4,3,3,2],9:[4,3,3,3,1],
+  10:[4,3,3,3,2],11:[4,3,3,3,2,1],12:[4,3,3,3,2,1],13:[4,3,3,3,2,1,1],14:[4,3,3,3,2,1,1],
+  15:[4,3,3,3,2,1,1,1],16:[4,3,3,3,2,1,1,1],17:[4,3,3,3,2,1,1,1,1],18:[4,3,3,3,3,1,1,1,1],
+  19:[4,3,3,3,3,2,1,1,1],20:[4,3,3,3,3,2,2,1,1]
+};
+const ORD = ['1º','2º','3º','4º','5º','6º','7º','8º','9º'];
+let mcShown = {2:false, 3:false};
+// Lista de classes ativas (primária + multiclasses preenchidas)
+function classesArr(){
+  const arr=[];
+  const c1=vById('classe'); if(c1) arr.push({c:c1, lv:parseInt(vById('nivel'))||0, sub:vById('subclasse'), idx:1});
+  [2,3].forEach(i=>{ const c=vById('mc-classe-'+i); if(c) arr.push({c, lv:parseInt(vById('mc-nivel-'+i))||0, sub:vById('mc-sub-'+i), idx:i}); });
+  return arr;
+}
+function totalLevel(){ const t=classesArr().reduce((s,x)=>s+(x.lv||0),0); return Math.max(1,t); }
+function hitDiceStr(){
+  const tally={};
+  classesArr().forEach(({c,lv})=>{ const d=(CLASSES[baseClasse(c)]||{}).die; if(d&&lv) tally[d]=(tally[d]||0)+lv; });
+  return Object.keys(tally).sort((a,b)=>b-a).map(d=>`${tally[d]}d${d}`).join(' + ') || '—';
+}
+function casterLevel(){
+  let cl=0;
+  classesArr().forEach(({c,lv,sub})=>{
+    const b=baseClasse(c);
+    if(CASTERFRAC[b]) cl += CASTERFRAC[b]===1 ? lv : Math.ceil(lv/2);
+    else if(b==='Guerreiro' && /Cavaleiro Míst/i.test(sub||'')) cl += Math.floor(lv/3);
+    else if(b==='Ladino' && /Trapaceiro Arcano/i.test(sub||'')) cl += Math.floor(lv/3);
+  });
+  return Math.min(20, cl);
+}
+// Grupo de Habilidades de Classe a que um item pertence, e a classe correspondente
+function habGroupOf(name){ for(const g in HAB_CLASSE){ if(HAB_CLASSE[g].includes(name)) return g; } return null; }
+function classOfGroup(g){ return g ? g.split(' — ')[0].trim() : null; }
+// Verifica pré-requisito (≥13). Retorna {ok, txt}
+function prereqClasse(b){
+  const req = PRIMARIO[b];
+  if(!req) return {ok:true, txt:'homebrew — confirme o pré-requisito com o Mestre'};
+  const partes = req.map(r=>{
+    const alts = r.split('|');
+    const okAlt = alts.some(k=>(parseInt(vById('sc-'+k))||0)>=13);
+    const nomes = alts.map(k=>(ATRIBUTOS.find(a=>a.k===k)||{}).abrev).join(' ou ');
+    return {nomes, ok:okAlt};
+  });
+  const ok = partes.every(p=>p.ok);
+  return {ok, txt:'precisa de 13+ em ' + partes.map(p=>p.nomes).join(' e ')};
+}
 
 /* ============ CONSTRUÇÃO DA UI ============ */
 function preencherSelects(){
@@ -1368,7 +1459,7 @@ function addArma(){
   const sel = document.getElementById('sel-arma'); if(!sel || sel.value==='') return;
   const w = ARMAS[+sel.value]; if(!w) return;
   const mFor = mod(vById('sc-for')), mDes = mod(vById('sc-des'));
-  const lv = parseInt(vById('nivel'))||1, pb = profByLevel(lv);
+  const lv = totalLevel(), pb = profByLevel(lv);
   const abil = w.ranged ? 'des' : (w.fin ? (mDes>=mFor?'des':'for') : 'for');
   const aMod = abil==='des' ? mDes : mFor;
   const atk = aMod + pb + (w.ranged ? (BON.atkRanged||0) : 0);
@@ -1404,6 +1495,101 @@ function popCustomBonus(){
   ATRIBUTOS.forEach(a=>o+=`<option value="chk:${a.k}">Testes de ${a.nome} (todas as perícias do atributo)</option>`);
   o += '<option value="init:">Iniciativa</option><option value="ca:">Classe de Armadura (CA)</option><option value="pp:">Percepção Passiva</option><option value="hpL:">PV por nível</option>';
   for(let i=0;i<5;i++){ const s=document.getElementById('cb-target-'+i); if(s) s.innerHTML=o; }
+}
+
+function montarMulti(){
+  const box=document.getElementById('multiRows'); if(!box) return;
+  const opts='<option value="">— escolha —</option>'+Object.keys(CLASSES).map(c=>`<option>${c}</option>`).join('');
+  box.innerHTML=[2,3].map(i=>`
+    <div class="mcrow" id="mcrow-${i}" style="display:none;">
+      <div class="field"><label>Classe ${i}</label><select id="mc-classe-${i}" data-k onchange="onMultiClasse(${i})">${opts}</select></div>
+      <div class="field"><label>Subclasse ${i}</label><input id="mc-sub-${i}" list="dl-sub-${i}" data-k oninput="recalc()"><datalist id="dl-sub-${i}"></datalist></div>
+      <div class="field"><label>Nível</label><input id="mc-nivel-${i}" type="number" min="1" max="20" data-k oninput="recalc()"></div>
+      <button class="rowdel" title="remover esta classe" onclick="removeMulti(${i})">×</button>
+    </div>`).join('');
+}
+function onMultiClasse(i){
+  const c=vById('mc-classe-'+i), info=CLASSES[c], dl=document.getElementById('dl-sub-'+i);
+  if(dl) dl.innerHTML = (info && info.sub && info.sub.length) ? info.sub.map(s=>`<option>${s}</option>`).join('') : '';
+  recalc(); salvar();
+}
+function syncMulti(){
+  [2,3].forEach(i=>{ const r=document.getElementById('mcrow-'+i); if(r) r.style.display = mcShown[i] ? 'flex' : 'none'; });
+  const b=document.getElementById('addMcBtn');
+  if(b){ const full = mcShown[2] && mcShown[3]; b.style.display = full ? 'none' : 'inline-block';
+    b.textContent = mcShown[2] ? '+ Adicionar 3ª classe' : '+ Adicionar 2ª classe (multiclasse)'; }
+}
+function addMulti(){ if(!mcShown[2]) mcShown[2]=true; else if(!mcShown[3]) mcShown[3]=true; syncMulti(); recalc(); salvar(); }
+function removeMulti(i){
+  const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.value=v; };
+  if(i===2 && mcShown[3]){ // sobe a 3ª classe para a 2ª posição
+    set('mc-classe-2',vById('mc-classe-3')); set('mc-sub-2',vById('mc-sub-3')); set('mc-nivel-2',vById('mc-nivel-3'));
+    set('mc-classe-3',''); set('mc-sub-3',''); set('mc-nivel-3',''); mcShown[3]=false; onMultiClasse(2);
+  } else {
+    set('mc-classe-'+i,''); set('mc-sub-'+i,''); set('mc-nivel-'+i,''); mcShown[i]=false;
+  }
+  syncMulti(); recalc(); salvar();
+}
+function renderMulti(){
+  // visibilidade: mostra linha cujo valor já veio salvo
+  mcShown[2] = mcShown[2] || !!vById('mc-classe-2');
+  mcShown[3] = mcShown[3] || !!vById('mc-classe-3');
+  syncMulti();
+  // mantém os datalists de subclasse das classes extras atualizados (sem recursão)
+  [2,3].forEach(i=>{ const c=vById('mc-classe-'+i), inf=CLASSES[c], dl=document.getElementById('dl-sub-'+i);
+    if(dl) dl.innerHTML = (inf && inf.sub && inf.sub.length) ? inf.sub.map(s=>`<option>${s}</option>`).join('') : ''; });
+
+  const arr = classesArr(), tot = totalLevel();
+  // linha de composição no cabeçalho
+  const comp = document.getElementById('compClasses');
+  if(comp){
+    if(arr.length<=1){
+      comp.innerHTML = arr.length ? `<span class="tt">Nível total ${tot}</span> · Dados de Vida ${hitDiceStr()}` : '';
+    } else {
+      const partes = arr.map(x=>`${x.c} ${x.lv}`).join('  /  ');
+      comp.innerHTML = `${partes} &nbsp; <span class="tt">Nível total ${tot}</span> · Dados de Vida ${hitDiceStr()}`;
+    }
+  }
+  // bloco informativo (pré-requisitos + conjuração multiclasse)
+  const info = document.getElementById('mcInfo');
+  if(info){
+    let html='';
+    if(arr.length>=2){
+      html += '<div class="small" style="margin-top:7px;">Pré-requisitos (Livro do Jogador): ' +
+        arr.map(x=>{ const b=baseClasse(x.c), pr=prereqClasse(b);
+          return `<b>${b}</b> <span class="${pr.ok?'mcok':'mcwarn'}">${pr.ok?'✓':'⚠'}</span> <span class="src">(${pr.txt})</span>`;
+        }).join(' &nbsp;·&nbsp; ') + '</div>';
+    }
+    const cl = casterLevel();
+    if(cl>0 && arr.length>=2){
+      const slots = MULTI_SLOTS[cl]||[];
+      html += `<div class="small" style="margin-top:5px;">Conjurador multiclasse — nível de conjurador <b>${cl}</b> (some os níveis de conjuradores plenos + metade de Paladino/Guardião). Espaços de magia:</div>`;
+      html += '<div class="slots">'+slots.map((q,k)=>`<span class="slotpill">${q}<span> × ${ORD[k]}</span></span>`).join('')+'</div>';
+    }
+    info.innerHTML = html;
+  }
+  // cartões por classe, destacando habilidades escolhidas de cada uma
+  const cards = document.getElementById('mcCards');
+  if(cards){
+    if(arr.length<=1){ cards.innerHTML=''; }
+    else {
+      // agrupa habilidades de classe escolhidas por classe
+      const porClasse={};
+      LISTAS.hab.forEach(n=>{ const cls=classOfGroup(habGroupOf(n)); if(cls){ (porClasse[cls]=porClasse[cls]||[]).push(n); } });
+      cards.innerHTML = arr.map(x=>{
+        const b=baseClasse(x.c), info=CLASSES[b]||{};
+        const mini = (b==='Paladino') ? `<div class="mini"><img src="${LOGO_PRORPG}" alt=""></div>` : `<div class="mini">${medal(EMBLEMAS[b]||EMBLEMAS._fallback)}</div>`;
+        const castNome = info.cast ? (ATRIBUTOS.find(a=>a.k===info.cast)||{}).nome : '—';
+        const feats = (porClasse[b]||[]);
+        const featHtml = feats.length ? `<div class="feats"><b>Habilidades escolhidas:</b> ${feats.join(', ')}</div>` : '';
+        return `<div class="mccard">
+          <div class="ch">${mini}<div><div class="cn">${x.c}</div><div class="cl">Nível ${x.lv||0}${x.sub?` · ${x.sub}`:''}</div></div></div>
+          <div class="det">Dado de Vida: <b>${info.die?('d'+info.die):(info.note||'—')}</b> · Conjuração: <b>${castNome}</b></div>
+          ${featHtml}
+        </div>`;
+      }).join('');
+    }
+  }
 }
 
 /* ============ EVENTOS / CÁLCULO ============ */
@@ -1456,7 +1642,7 @@ function recalc(){
     document.getElementById('mod-'+a.k).textContent = fmt(m[a.k]);
   });
 
-  const lv = parseInt(document.getElementById('nivel').value)||1;
+  const lv = totalLevel();   // multiclasse: proficiência usa o nível TOTAL de personagem
   const pb = profByLevel(lv);
   document.getElementById('profBonus').textContent = fmt(pb);
 
@@ -1546,6 +1732,7 @@ function recalc(){
 
   renderBonusPanels();
   refreshMaestrias();
+  renderMulti();
   salvar();
 }
 
@@ -1796,11 +1983,12 @@ function limpar(){
   document.querySelectorAll('[data-k]').forEach(el=>{ if(el.type==='checkbox') el.checked=false; else el.value=''; });
   document.getElementById('nivel').value=1;
   LISTAS.tal=[]; LISTAS.hab=[]; LISTAS.qual=[]; LISTAS.def=[]; LISTAS.mag=[]; RECVALS={};
+  mcShown={2:false,3:false}; syncMulti();
   onClasse(); renderListas(); recalc();
 }
 
 /* ============ INIT ============ */
-preencherSelects(); montarAtributos(); montarSaves(); montarPericias(); montarAtaques(); popListSelects(); popArmasArmaduras(); montarExtras();
+preencherSelects(); montarAtributos(); montarSaves(); montarPericias(); montarAtaques(); popListSelects(); popArmasArmaduras(); montarExtras(); montarMulti();
 document.querySelectorAll('.logo-seal').forEach(s=>{ s.innerHTML = `<img src="${LOGO_PRORPG}" alt="Pró=RPG">`; });
 document.querySelectorAll('.sheet').forEach(s=>{ s.style.setProperty('--wm', `url("${LOGO_PRORPG}")`); });
 if(!loadFromHash()){ try{ aplicar(JSON.parse(localStorage.getItem(KEY))); }catch(e){} }
