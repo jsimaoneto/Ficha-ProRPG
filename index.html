@@ -1798,6 +1798,17 @@ function asiEscolha(key,tipo){
   if(tipo==='attr') avisar('Distribua os 2 pontos com as setas ▲ nos atributos (máx. 20 cada).', true);
 }
 function asiFeat(key,feat){ const a=ASI[key]; if(a){ a.feat=feat; recalc(); salvar(); } }
+function asiAddFeat(key,selId){
+  const sel=document.getElementById(selId); if(!sel) return;
+  const v=sel.value;
+  if(!v){ avisar('Escolha um talento na lista antes de clicar em “+ Adicionar”.'); return; }
+  const a=ASI[key]; if(!a) return;
+  // alerta (não bloqueia) se o mesmo talento já está em outro Aumento ou na lista de Talentos da página 2
+  const outroASI = asiSlots().some(s=>s.key!==key && ASI[s.key] && ASI[s.key].tipo==='feat' && ASI[s.key].feat===v);
+  if((LISTAS.tal.includes(v) || outroASI)){ avisar('Atenção: “'+v+'” já consta na ficha — só repita se o talento permitir ser adquirido mais de uma vez.'); }
+  a.feat=v; recalc(); salvar();
+  avisar('🎯 Talento “'+v+'” adicionado aos cálculos da ficha.', true);
+}
 function asiFeatsEscolhidos(){ const o=[]; asiSlots().forEach(s=>{ const a=ASI[s.key]; if(a&&a.tipo==='feat'&&a.feat) o.push(a.feat); }); return o; }
 function renderASI(){
   const pool=asiAttrPool();
@@ -1818,8 +1829,13 @@ function renderASI(){
       const det=ATRIBUTOS.filter(at=>a.gasto[at.k]).map(at=>`+${a.gasto[at.k]} ${at.abrev}`).join(', ')||'nada ainda';
       inner=`<div class="asidone">💪 <b>Atributos</b> (${asiGastoSlot(a)}/2 — ${det}). Use as setas ▲▼ nos atributos. <a href="#" onclick="asiEscolha('${s.key}','');return false;">trocar escolha</a></div>`;
     } else {
-      const opts='<option value="">— escolha um talento —</option>'+Object.keys(TALENTOS).map(cat=>`<optgroup label="${cat}">`+TALENTOS[cat].map(n=>`<option${a.feat===n?' selected':''}>${n}</option>`).join('')+'</optgroup>').join('');
-      inner=`<div class="asidone">🎯 <b>Talento:</b> <select onchange="asiFeat('${s.key}',this.value)">${opts}</select> <a href="#" onclick="asiEscolha('${s.key}','');return false;">trocar escolha</a></div>`;
+      const optHtml = arr => arr.map(n=>`<option${a.feat===n?' selected':''}>${n}</option>`).join('');
+      const opts='<option value="">— escolha um talento —</option>'
+        + Object.keys(TALENTOS).map(cat=>`<optgroup label="${cat}">`+optHtml(TALENTOS[cat])+'</optgroup>').join('')
+        + `<optgroup label="Nível Zero (Aliança de Heróis)">`+optHtml(TALENTOS_NZ)+'</optgroup>';
+      const selId='asisel-'+s.key;
+      const ok = a.feat ? ` <span style="color:var(--good);font-weight:700;">✓ ${a.feat} <span class="small">(nos cálculos)</span></span>` : '';
+      inner=`<div class="asidone">🎯 <b>Talento:</b> <select id="${selId}">${opts}</select> <button class="addbtn" onclick="asiAddFeat('${s.key}','${selId}')">+ Adicionar</button>${ok} <a href="#" onclick="asiEscolha('${s.key}','');return false;">trocar escolha</a></div>`;
     }
     return `<div class="asislot${pend?' pending':''}"><div class="ttl">⬆️ Aumento de Habilidade — ${s.classe} · Nível ${s.lvl}${pend?' — ESCOLHA:':''}</div>${inner}</div>`;
   }).join('');
@@ -2007,7 +2023,7 @@ const PERICIA_NAMES = PERICIAS.map(p=>p[0]);
 let BON = {chk:{}, skill:{}, sv:{}, svSrc:{}, init:0, initProf:0, atkRanged:0, ca:0, pp:0, hpL:0, list:[], advSkill:{}, disSkill:{}, advOther:[], disOther:[]};
 function computeBonuses(){
   const acc = {chk:{}, skill:{}, sv:{}, svSrc:{}, init:0, initProf:0, atkRanged:0, ca:0, pp:0, hpL:0, list:[], advSkill:{}, disSkill:{}, advOther:[], disOther:[]};
-  [].concat(LISTAS.tal, LISTAS.hab, LISTAS.qual, LISTAS.def, LISTAS.mag).forEach(n=>{
+  [].concat(LISTAS.tal, asiFeatsEscolhidos(), LISTAS.hab, LISTAS.qual, LISTAS.def, LISTAS.mag).forEach(n=>{
     const b = BONUS[n]; if(!b) return;
     if(b.init){ acc.init+=b.init; acc.list.push(`${n}: Iniciativa ${b.init>0?'+':''}${b.init}`); }
     if(b.initProf){ acc.initProf+=b.initProf; acc.list.push(`${n}: Iniciativa +Bônus de Proficiência`); }
