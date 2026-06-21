@@ -554,10 +554,11 @@
 
   <div class="panel" style="margin-bottom:10px;">
     <h3>🎯 Talentos <span class="small">— D&amp;D 2024 (Origem · Geral · Estilo de Luta · Dádiva Épica) + Nível Zero (Aliança)</span></h3>
-    <div class="addrow noprint">
+    <div class="addrow noprint" id="row-add-tal">
       <select id="sel-tal"></select>
-      <button class="addbtn" onclick="addItem('tal')">+ Adicionar</button>
+      <button class="addbtn" id="btn-add-tal" onclick="addItem('tal')">+ Adicionar</button>
     </div>
+    <div class="small noprint" id="tal-hint" style="display:none; margin:4px 0;"></div>
     <div class="selprev noprint" id="prev-tal" style="display:none"></div>
     <div id="chips-tal" class="chips"></div>
   </div>
@@ -2163,9 +2164,21 @@ function talentoCatValida(cat){
   if(cat==='Geral')        return lv>=4;    // Talentos Gerais: a partir do 4º nível
   return true;                              // Origem · Estilo de Luta · Nível Zero (sempre)
 }
-// (Re)constrói o seletor de Talentos da página 2: oculta os já escolhidos não repetíveis e os de categoria fora do nível
+// A página 2 só permite escolher talentos na CRIAÇÃO do personagem (Nível 0 e Nível 1: talentos de Nível Zero + talento de Origem).
+// Do Nível 2 em diante, talentos novos vêm SÓ pelo painel "Aumento de Habilidade" (que aparece quando o jogador ganha um talento).
+function podeEscolherTalento(){ return totalLevel() <= 1; }
+// (Re)constrói o seletor de Talentos da página 2: só na criação; oculta os já escolhidos não repetíveis e os de categoria fora do nível
 function popTalSelect(){
   const sel=document.getElementById('sel-tal'); if(!sel) return;
+  const row=document.getElementById('row-add-tal'), hint=document.getElementById('tal-hint');
+  if(!podeEscolherTalento()){
+    if(row) row.style.display='none';
+    if(hint){ hint.style.display='block'; hint.innerHTML='🎯 Talentos só são escolhidos na <b>criação</b> (Níveis 0–1). Para um talento ganho ao subir de nível, use o painel <b>“Aumento de Habilidade”</b> (logo abaixo dos atributos).'; }
+    sel.innerHTML='<option value="">— indisponível: talento só na criação ou via Aumento de Habilidade —</option>';
+    return;
+  }
+  if(row) row.style.display='';
+  if(hint){ hint.style.display='none'; hint.innerHTML=''; }
   const prev=sel.value;
   const chosen=new Set(talentosEscolhidos().filter(n=>!itemRepetivel(n)));
   const mk = arr => arr.filter(n=>!chosen.has(n)).map(n=>`<option${optTitle(n)}>${n}</option>`).join('');
@@ -2215,6 +2228,10 @@ function addItem(t){
   const sel = document.getElementById('sel-'+t);
   if(!sel.value) return;
   const nome = sel.value;
+  // TRAVA: talento só pode ser escolhido na criação (Níveis 0–1); depois é via Aumento de Habilidade
+  if(t==='tal' && !podeEscolherTalento()){
+    avisar('Talentos novos só na criação (Níveis 0–1). Ao subir de nível, escolha o talento no painel “Aumento de Habilidade”.'); return;
+  }
   // TRAVA: habilidade de classe precisa pertencer a uma classe presente na ficha
   if(t==='hab'){
     if(totalLevel()===0){ avisar('No Nível 0 (Criação) você ainda não tem nível de classe. Suba para o Nível 1 (escolha uma classe) para adicionar Habilidades de Classe.'); return; }
