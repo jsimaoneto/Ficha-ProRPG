@@ -171,6 +171,23 @@
     background:#fdecea; border:1px solid #e6a6a0; border-left:4px solid #b00020; color:#7a1410;}
   .lockmsg.ok{background:#eaf6ea; border-color:#a9d6ab; border-left-color:var(--good); color:#235a26;}
 
+  /* Aumento de Habilidade (ASI) — setas e painel */
+  .ability .asiarrows{display:flex; justify-content:center; gap:4px; margin-top:3px;}
+  .asibtn{border:1px solid var(--accent2); background:#fff; color:var(--accent); border-radius:5px; width:26px; height:20px; cursor:pointer; font-size:10px; line-height:1; font-weight:800; padding:0;}
+  .asibtn:hover{background:var(--hl);}
+  .asibtn.on{background:var(--good); color:#fff; border-color:var(--good); animation:asipulse 1.2s ease-in-out infinite;}
+  @keyframes asipulse{0%,100%{box-shadow:0 0 0 0 rgba(44,94,46,.5);}50%{box-shadow:0 0 0 4px rgba(44,94,46,0);}}
+  .asipool{font-size:10px; font-weight:800; color:var(--good); background:#eaf6ea; border:1px solid #a9d6ab; border-radius:8px; padding:1px 8px;}
+  .asislot{border:1px solid var(--line); border-radius:8px; padding:6px 9px; margin-top:6px; background:#fffdf6;}
+  .asislot.pending{border-color:#c98a1a; background:#fff5e0; box-shadow:inset 0 0 0 1px #e8c987;}
+  .asislot .ttl{font-family:var(--display); font-size:11px; font-weight:800; color:var(--accent);}
+  .asichoice{display:flex; gap:6px; margin-top:5px; flex-wrap:wrap;}
+  .asichoice button{border:none; border-radius:6px; padding:7px 12px; cursor:pointer; font-weight:700; font-size:11.5px; color:#fff;}
+  .asichoice .b-attr{background:var(--good);} .asichoice .b-attr:hover{background:#3c7a3f;}
+  .asichoice .b-feat{background:#3a4f6b;} .asichoice .b-feat:hover{background:#4c668c;}
+  .asidone{font-size:10.5px; color:var(--ink); margin-top:3px;} .asidone b{color:var(--accent);}
+  .asidone a{color:#8a4b16; font-size:10px;} .asidone select{font-size:11.5px; padding:3px 5px; width:auto; display:inline-block;}
+
   .small{font-size:10px; color:var(--muted);}
 
   .selprev{margin-top:6px; padding:6px 9px; font-size:10.5px; line-height:1.35; color:var(--ink); background:#fff8e6; border:1px solid var(--accent2); border-left:3px solid var(--accent); border-radius:5px;}
@@ -405,8 +422,9 @@
 
   <!-- Atributos -->
   <div class="panel" style="margin-bottom:9px;">
-    <h3>Valores de Atributo &amp; Modificadores <span class="badge">auto modificador</span></h3>
+    <h3>Valores de Atributo &amp; Modificadores <span class="badge">auto modificador</span> <span class="asipool" id="asiPool" style="display:none;"></span></h3>
     <div class="abilities" id="abilities"></div>
+    <div id="asiBox"></div>
   </div>
 
   <!-- Coluna esquerda: stats e perícias / Coluna direita: combate -->
@@ -1437,6 +1455,7 @@ function montarAtributos(){
       <input class="score" id="sc-${a.k}" type="number" min="1" max="30" data-k
              oninput="recalc()" onmousedown="if(this.readOnly){aoEditarAtributo();}" placeholder="10">
       <div class="sub">${a.abrev}</div>
+      <div class="asiarrows"><button class="asibtn" id="up-${a.k}" onclick="asiInc('${a.k}')" title="Aumentar atributo">▲</button><button class="asibtn" id="dn-${a.k}" onclick="asiDec('${a.k}')" title="Diminuir atributo">▼</button></div>
     </div>`).join('');
 }
 
@@ -1671,7 +1690,9 @@ function subirNivel(){
   if(!c){ avisar('Você está no Nível 0 (Criação). Escolha primeiro a 1ª classe no cabeçalho — isso te leva ao Nível 1. Para uma nova classe, use “+ Adicionar outra classe”.'); return; }
   setClassLevel(idx, classLevelOf(idx)+1);
   recalc(); salvar();
-  avisar('Subiu para o Nível '+totalLevel()+' como '+baseClasse(c)+'. Adicione agora as escolhas referentes a este nível desta classe.', true);
+  const lvN=classLevelOf(idx), bc=baseClasse(c);
+  if(asiLevels(bc).includes(lvN)) avisar('🎯 Aumento de Habilidade no Nível '+lvN+' de '+bc+'! No painel “Aumentos de Habilidade” (logo abaixo dos atributos), escolha: melhorar atributos (+2) ou escolher um talento.', true);
+  else avisar('Subiu para o Nível '+totalLevel()+' como '+bc+'. Adicione as escolhas referentes a este nível.', true);
 }
 function itensDoNivel(L){
   const out=[];
@@ -1723,8 +1744,85 @@ function applyLocks(){
     : (c?`Sobe a última classe: <b>${baseClasse(c)}</b> (Nível ${classLevelOf(lastClassIdx())} nela)`:''); }
 }
 function aoEditarAtributo(){   // chamado quando o usuário tenta editar um atributo travado
-  if(totalLevel()>0){ avisar('Atributos só podem ser editados no Nível 0 (Criação). Para alterá-los, desça a ficha até o Nível 0.'); return false; }
+  if(totalLevel()>0){ avisar('Atributos só podem ser editados no Nível 0 (Criação). Para alterá-los, desça a ficha até o Nível 0. Do Nível 1 em diante, use as setas ▲▼ quando ganhar um Aumento de Habilidade.'); return false; }
   return true;
+}
+
+/* ====== AUMENTO DE HABILIDADE (ASI — Livro do Jogador 2024) ====== */
+// Níveis em que cada classe ganha Aumento de Habilidade (escolher +2 atributos OU um talento)
+let ASI = {};   // 'Classe#nivel' -> {tipo:''|'attr'|'feat', gasto:{for:..}, feat:'nome'}
+const ASI_LEVELS_DEFAULT = [4,8,12,16,19];
+const ASI_LEVELS = { 'Guerreiro':[4,6,8,12,14,16,19], 'Ladino':[4,8,10,12,16,19] };
+function asiLevels(b){ return ASI_LEVELS[b] || ASI_LEVELS_DEFAULT; }
+function asiSlots(){
+  const out=[];
+  classesArr().forEach(x=>{ const b=baseClasse(x.c); asiLevels(b).forEach(L=>{ if(L<=x.lv) out.push({key:b+'#'+L, classe:b, lvl:L}); }); });
+  return out;
+}
+function asiGastoSlot(a){ let s=0; if(a&&a.gasto) ATRIBUTOS.forEach(at=>s+=(a.gasto[at.k]||0)); return s; }
+function asiAttrPool(){   // pontos de atributo concedidos (slots 'attr') ainda não distribuídos
+  let g=0,sp=0; asiSlots().forEach(s=>{ const a=ASI[s.key]; if(a&&a.tipo==='attr'){ g+=2; sp+=asiGastoSlot(a); } });
+  return g-sp;
+}
+function asiCleanup(){   // remove slots não mais válidos (descer de nível) devolvendo os pontos
+  const valid=new Set(asiSlots().map(s=>s.key));
+  Object.keys(ASI).forEach(key=>{
+    if(!valid.has(key)){
+      const a=ASI[key];
+      if(a&&a.tipo==='attr'&&a.gasto) ATRIBUTOS.forEach(at=>{ const gp=a.gasto[at.k]||0; if(gp){ const sc=document.getElementById('sc-'+at.k); if(sc) sc.value=(parseInt(sc.value)||0)-gp; } });
+      delete ASI[key];
+    }
+  });
+}
+function asiInc(k){
+  const sc=document.getElementById('sc-'+k); let v=parseInt(sc.value)||0;
+  if(totalLevel()===0){ if(v<30){ sc.value=v+1; recalc(); salvar(); } return; }   // Nível 0: ajuste livre do valor-base
+  if(asiAttrPool()<=0){ avisar('Sem pontos de Aumento de Habilidade para distribuir. No painel “Aumentos de Habilidade”, escolha “Melhorar Atributos”.'); return; }
+  if(v>=20){ avisar('Pelo Aumento de Habilidade, o máximo de um atributo é 20.'); return; }
+  const s=asiSlots().find(s=>{ const a=ASI[s.key]; return a&&a.tipo==='attr'&&asiGastoSlot(a)<2; });
+  if(!s) return;
+  ASI[s.key].gasto[k]=(ASI[s.key].gasto[k]||0)+1; sc.value=v+1; recalc(); salvar();
+}
+function asiDec(k){
+  const sc=document.getElementById('sc-'+k); let v=parseInt(sc.value)||0;
+  if(totalLevel()===0){ if(v>1){ sc.value=v-1; recalc(); salvar(); } return; }
+  const slots=asiSlots().filter(s=>{ const a=ASI[s.key]; return a&&a.tipo==='attr'&&(a.gasto[k]||0)>0; });
+  if(!slots.length){ const nm=(ATRIBUTOS.find(a=>a.k===k)||{}).nome; avisar('Não há ponto de Aumento de Habilidade em '+nm+' para remover. O valor-base só muda no Nível 0 (Criação).'); return; }
+  const s=slots[slots.length-1]; ASI[s.key].gasto[k]--; sc.value=v-1; recalc(); salvar();
+}
+function asiEscolha(key,tipo){
+  const a=ASI[key]=ASI[key]||{tipo:'',gasto:{},feat:''};
+  if(a.tipo==='attr' && tipo!=='attr'){ ATRIBUTOS.forEach(at=>{ const gp=a.gasto[at.k]||0; if(gp){ const sc=document.getElementById('sc-'+at.k); sc.value=(parseInt(sc.value)||0)-gp; } }); a.gasto={}; }
+  if(a.tipo==='feat' && tipo!=='feat'){ a.feat=''; }
+  a.tipo=tipo; recalc(); salvar();
+  if(tipo==='attr') avisar('Distribua os 2 pontos com as setas ▲ nos atributos (máx. 20 cada).', true);
+}
+function asiFeat(key,feat){ const a=ASI[key]; if(a){ a.feat=feat; recalc(); salvar(); } }
+function asiFeatsEscolhidos(){ const o=[]; asiSlots().forEach(s=>{ const a=ASI[s.key]; if(a&&a.tipo==='feat'&&a.feat) o.push(a.feat); }); return o; }
+function renderASI(){
+  const pool=asiAttrPool();
+  const pe=document.getElementById('asiPool');
+  if(pe){ pe.textContent='💪 Pontos de atributo a distribuir: '+pool; pe.style.display=pool>0?'inline-block':'none'; }
+  // setas ▲ piscam quando há pontos para gastar
+  ATRIBUTOS.forEach(a=>{ const up=document.getElementById('up-'+a.k); if(up) up.classList.toggle('on', pool>0 && totalLevel()>0); });
+  const box=document.getElementById('asiBox'); if(!box) return;
+  const slots=asiSlots();
+  if(!slots.length){ box.innerHTML=''; return; }
+  box.innerHTML = slots.map(s=>{
+    const a=ASI[s.key]||{tipo:'',gasto:{},feat:''};
+    const pend=!a.tipo;
+    let inner;
+    if(pend){
+      inner=`<div class="asichoice"><button class="b-attr" onclick="asiEscolha('${s.key}','attr')">💪 Melhorar Atributos (+2)</button><button class="b-feat" onclick="asiEscolha('${s.key}','feat')">🎯 Escolher Talento</button></div>`;
+    } else if(a.tipo==='attr'){
+      const det=ATRIBUTOS.filter(at=>a.gasto[at.k]).map(at=>`+${a.gasto[at.k]} ${at.abrev}`).join(', ')||'nada ainda';
+      inner=`<div class="asidone">💪 <b>Atributos</b> (${asiGastoSlot(a)}/2 — ${det}). Use as setas ▲▼ nos atributos. <a href="#" onclick="asiEscolha('${s.key}','');return false;">trocar escolha</a></div>`;
+    } else {
+      const opts='<option value="">— escolha um talento —</option>'+Object.keys(TALENTOS).map(cat=>`<optgroup label="${cat}">`+TALENTOS[cat].map(n=>`<option${a.feat===n?' selected':''}>${n}</option>`).join('')+'</optgroup>').join('');
+      inner=`<div class="asidone">🎯 <b>Talento:</b> <select onchange="asiFeat('${s.key}',this.value)">${opts}</select> <a href="#" onclick="asiEscolha('${s.key}','');return false;">trocar escolha</a></div>`;
+    }
+    return `<div class="asislot${pend?' pending':''}"><div class="ttl">⬆️ Aumento de Habilidade — ${s.classe} · Nível ${s.lvl}${pend?' — ESCOLHA:':''}</div>${inner}</div>`;
+  }).join('');
 }
 
 /* ============ EVENTOS / CÁLCULO ============ */
@@ -1770,6 +1868,7 @@ function onClasse(userAction){
 }
 
 function recalc(){
+  asiCleanup();       // devolve pontos de Aumentos de Habilidade que deixaram de existir (descer de nível)
   computeBonuses();   // recalcula bônus/penalidades ativos (itens + armadura)
   // modificadores
   const m = {};
@@ -1871,6 +1970,7 @@ function recalc(){
   refreshMaestrias();
   renderMulti();
   applyLocks();
+  renderASI();          // pontos/painel de Aumento de Habilidade
   renderDescricoes();   // atualiza as habilidades automáticas por nível ao subir/descer
   salvar();
 }
@@ -2056,6 +2156,8 @@ function renderDescricoes(){
   const box = document.getElementById('descBox'); if(!box) return;
   const grupos = [['Talentos','tal'],['Habilidades de Classe (escolhidas)','hab'],['Itens Mágicos','mag'],['Qualidades','qual'],['Defeitos','def']];
   let html = autoHabHtml();   // primeiro as automáticas por nível
+  const af = asiFeatsEscolhidos();
+  if(af.length){ html += `<div class="descgrupo"><h4>Talentos de Aumento de Habilidade</h4>`+af.map(n=>`<p class="descitem"><b>${n}.</b> ${DESC[n]||'<i>(consulte o livro)</i>'}</p>`).join('')+'</div>'; }
   grupos.forEach(([titulo,k])=>{
     const lista = k==='hab' ? LISTAS.hab.filter(n=>!AUTO_NAMES.has(n)) : LISTAS[k];
     if(!lista.length) return;
@@ -2077,6 +2179,7 @@ function coletar(){
   d.__listas = {tal:LISTAS.tal.slice(), hab:LISTAS.hab.slice(), qual:LISTAS.qual.slice(), def:LISTAS.def.slice(), mag:LISTAS.mag.slice()};
   d.__recursos = RECVALS;
   d.__prov = PROV;
+  d.__asi = ASI;
   return d;
 }
 function aplicar(d){
@@ -2096,6 +2199,8 @@ function aplicar(d){
   if(d.__recursos) RECVALS = d.__recursos;
   // migração: remove das escolhidas as habilidades que agora são automáticas por nível
   LISTAS.hab = LISTAS.hab.filter(n=>!AUTO_NAMES.has(n));
+  ASI = d.__asi || {};
+  Object.keys(ASI).forEach(k=>{ ASI[k].gasto = ASI[k].gasto || {}; });
   // procedência por nível (fichas antigas: itens sem registro entram como Nível 0)
   PROV = {tal:{}, hab:{}, qual:{}, def:{}, mag:{}};
   const pv = d.__prov || {};
@@ -2163,7 +2268,7 @@ function limpar(){
   localStorage.removeItem(KEY);
   document.querySelectorAll('[data-k]').forEach(el=>{ if(el.type==='checkbox') el.checked=false; else el.value=''; });
   LISTAS.tal=[]; LISTAS.hab=[]; LISTAS.qual=[]; LISTAS.def=[]; LISTAS.mag=[]; RECVALS={};
-  PROV={tal:{},hab:{},qual:{},def:{},mag:{}};
+  PROV={tal:{},hab:{},qual:{},def:{},mag:{}}; ASI={};
   mcShown={2:false,3:false}; syncMulti();
   document.getElementById('nivel').value=0;   // volta ao Nível 0 (Criação)
   onClasse(); renderListas(); recalc();
