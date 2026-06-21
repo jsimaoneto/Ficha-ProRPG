@@ -164,6 +164,10 @@
   .lvlbtn{border:none; border-radius:8px; padding:8px 14px; cursor:pointer; font-weight:800; font-size:13px; color:#fff;}
   .lvlbtn.up{background:var(--good);} .lvlbtn.up:hover{background:#3c7a3f;}
   .lvlbtn.dn{background:#8a4b16;} .lvlbtn.dn:hover{background:#a85c1d;}
+  .lvlchooser{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:9px; padding:9px 11px; background:var(--hl); border:1px dashed var(--accent2); border-radius:8px;}
+  .chooserlbl{font-weight:800; color:var(--accent); margin-right:4px;}
+  .lvlbtn.choose{background:#2f6b46;} .lvlbtn.choose:hover{background:#3c7a3f;}
+  .lvlbtn.cancel{background:#777;} .lvlbtn.cancel:hover{background:#8a8a8a; }
   .lvllast{font-size:11px; color:var(--ink);} .lvllast b{color:var(--accent);}
   .creationtag{background:var(--accent2); color:#2a2102; font-weight:800; font-size:10px; padding:2px 8px; border-radius:8px;}
   input.locked,select.locked{background:#efe7d6 !important; color:#7a6f5c; cursor:not-allowed; border-style:dashed;}
@@ -401,13 +405,14 @@
 
   <!-- Progressão de nível -->
   <div class="panel noprint" style="margin-bottom:9px;">
-    <h3>🔼 Progressão de Nível <span class="small">— Nível 0 (Criação): tudo editável · do Nível 1 em diante, sobe sempre a ÚLTIMA classe</span></h3>
+    <h3>🔼 Progressão de Nível <span class="small">— Nível 0 (Criação): tudo editável · do Nível 1 em diante, ao subir você escolhe em qual classe (multiclasse)</span></h3>
     <div class="progress">
       <div style="text-align:center;"><div class="lvlcap">Nível total</div><div class="lvlbig" id="lvlTotal">0</div></div>
       <button class="lvlbtn dn" onclick="descerNivel()">▼ Descer nível</button>
       <button class="lvlbtn up" onclick="subirNivel()">▲ Subir nível</button>
       <div class="lvllast" id="lvlLast"></div>
     </div>
+    <div class="lvlchooser" id="lvlChooser" style="display:none;"></div>
     <div class="lockmsg" id="lockMsg"></div>
   </div>
 
@@ -1434,13 +1439,16 @@ function popHabSelect(){
   const sel=document.getElementById('sel-hab'); if(!sel) return;
   const prev=sel.value;
   const niveis=classLevels();
+  const escolhidas=new Set(LISTAS.hab);     // oculta as já escolhidas (habilidades não se repetem)
   let hh='', algum=false;
   for(const grp in HAB_CLASSE){
     const cls=classOfGroup(grp), lv=niveis[cls];
     if(lv===undefined) continue;            // classe não está na ficha
     if(lv<habMinLevel(grp)) continue;       // ainda não atingiu o nível do grupo
+    const body=HAB_CLASSE[grp].filter(n=>!escolhidas.has(n)).map(n=>`<option${optTitle(n)}>${n}</option>`).join('');
+    if(!body) continue;
     algum=true;
-    hh+=`<optgroup label="${grp}">`+HAB_CLASSE[grp].map(n=>`<option${optTitle(n)}>${n}</option>`).join('')+'</optgroup>';
+    hh+=`<optgroup label="${grp}">`+body+'</optgroup>';
   }
   sel.innerHTML = algum
     ? '<option value="">— escolha uma habilidade —</option>'+hh
@@ -1630,7 +1638,8 @@ function renderMulti(){
   syncMulti();
   // mantém os datalists de subclasse das classes extras atualizados (sem recursão)
   [2,3].forEach(i=>{ const c=vById('mc-classe-'+i), inf=CLASSES[c], dl=document.getElementById('dl-sub-'+i);
-    if(dl) dl.innerHTML = (inf && inf.sub && inf.sub.length) ? inf.sub.map(s=>`<option>${s}</option>`).join('') : ''; });
+    if(dl) dl.innerHTML = (inf && inf.sub && inf.sub.length) ? inf.sub.map(s=>`<option>${s}</option>`).join('') : '';
+    gateSubclasse('mc-sub-'+i, c, classLevelOf(i)); });   // subclasse da classe multiclasse: só a partir do 3º nível dela
 
   const arr = classesArr(), tot = totalLevel();
   // linha de composição no cabeçalho
@@ -1693,6 +1702,7 @@ function renderMulti(){
 /* ====== PROGRESSÃO DE NÍVEL E TRAVAS (regras do PHB 2024) ====== */
 // Procedência: registra em que nível total cada item foi adicionado (p/ desfazer ao descer de nível)
 let PROV = {tal:{}, hab:{}, qual:{}, def:{}, mag:{}};
+let LVLORD = [];   // ordem dos níveis ganhos: lista de índices de classe (1, 2 ou 3) — soma classes repetidas mesmo fora de ordem
 function avisar(msg, ok){
   const b=document.getElementById('lockMsg'); if(!b) return;
   b.className='lockmsg'+(ok?' ok':''); b.textContent=(ok?'✓ ':'🔒 ')+msg; b.style.display='block';
@@ -1703,19 +1713,55 @@ function lastClassIdx(){
   if(mcShown[2] && vById('mc-classe-2')) return 2;
   return 1;
 }
+// Classes atualmente na ficha (com nome definido), em ordem de slot
+function classesPresentes(){
+  const out=[];
+  if(vById('classe')) out.push({idx:1, c:vById('classe')});
+  [2,3].forEach(i=>{ if(mcShown[i] && vById('mc-classe-'+i)) out.push({idx:i, c:vById('mc-classe-'+i)}); });
+  return out;
+}
+// LVLORD válido? (comprimento = nível total E contagem por classe = nível de cada classe)
+function lvlOrderOk(){
+  const want={1:0,2:0,3:0};
+  classesPresentes().forEach(p=>{ want[p.idx]=classLevelOf(p.idx); });
+  const got={1:0,2:0,3:0}; LVLORD.forEach(i=>{ if(got[i]!==undefined) got[i]++; });
+  return got[1]===want[1] && got[2]===want[2] && got[3]===want[3] && LVLORD.length===(want[1]+want[2]+want[3]);
+}
+// Reconstrói LVLORD de forma determinística (ordem de slot) — usado em fichas antigas ou se houver edição manual
+function rebuildLvlOrder(){
+  LVLORD=[];
+  classesPresentes().forEach(p=>{ const n=classLevelOf(p.idx); for(let k=0;k<n;k++) LVLORD.push(p.idx); });
+}
+function ensureLvlOrder(){ if(!lvlOrderOk()) rebuildLvlOrder(); }
 function classLevelOf(idx){ return idx===1 ? (parseInt(vById('nivel'))||0) : (parseInt(vById('mc-nivel-'+idx))||0); }
 function setClassLevel(idx,v){ const e=document.getElementById(idx===1?'nivel':('mc-nivel-'+idx)); if(e) e.value=v; }
 function nomeUltimaClasse(){ const idx=lastClassIdx(); const c = idx===1?vById('classe'):vById('mc-classe-'+idx); return c||''; }
 function subirNivel(){
   if(totalLevel()>=20){ avisar('Nível máximo de personagem (20) já atingido.'); return; }
-  const idx=lastClassIdx();
+  const pres=classesPresentes();
+  if(!pres.length){ avisar('Você está no Nível 0 (Criação). Escolha primeiro a 1ª classe no cabeçalho — isso te leva ao Nível 1. Para uma nova classe, use “+ Adicionar outra classe”.'); return; }
+  if(pres.length===1){ subirNivelEm(pres[0].idx); return; }   // só uma classe: sobe direto
+  // multiclasse: pergunta em qual classe aplicar o nível
+  const ch=document.getElementById('lvlChooser');
+  if(!ch){ subirNivelEm(lastClassIdx()); return; }
+  ch.innerHTML = '<span class="chooserlbl">Subir nível em qual classe?</span>'
+    + pres.map(p=>`<button class="lvlbtn up choose" onclick="subirNivelEm(${p.idx})">${baseClasse(p.c)} → Nível ${classLevelOf(p.idx)+1}</button>`).join('')
+    + '<button class="lvlbtn cancel" onclick="fecharEscolhaClasse()">cancelar</button>';
+  ch.style.display='flex';
+}
+function fecharEscolhaClasse(){ const ch=document.getElementById('lvlChooser'); if(ch){ ch.style.display='none'; ch.innerHTML=''; } }
+function subirNivelEm(idx){
+  fecharEscolhaClasse();
+  if(totalLevel()>=20){ avisar('Nível máximo de personagem (20) já atingido.'); return; }
   const c = idx===1?vById('classe'):vById('mc-classe-'+idx);
-  if(!c){ avisar('Você está no Nível 0 (Criação). Escolha primeiro a 1ª classe no cabeçalho — isso te leva ao Nível 1. Para uma nova classe, use “+ Adicionar outra classe”.'); return; }
+  if(!c){ avisar('Essa classe ainda não foi definida na aba Multiclasse.'); return; }
+  ensureLvlOrder();
   setClassLevel(idx, classLevelOf(idx)+1);
+  LVLORD.push(idx);
   recalc(); salvar();
   const lvN=classLevelOf(idx), bc=baseClasse(c);
   if(asiLevels(bc).includes(lvN)) avisar('🎯 Aumento de Habilidade no Nível '+lvN+' de '+bc+'! No painel “Aumentos de Habilidade” (logo abaixo dos atributos), escolha: melhorar atributos (+2) ou escolher um talento.', true);
-  else avisar('Subiu para o Nível '+totalLevel()+' como '+bc+'. Adicione as escolhas referentes a este nível.', true);
+  else avisar('Personagem agora no Nível '+totalLevel()+' — '+bc+' está no Nível '+lvN+' nela. Adicione as escolhas deste nível.', true);
 }
 function itensDoNivel(L){
   const out=[];
@@ -1730,19 +1776,27 @@ function removerItensDoNivel(L){
 function descerNivel(){
   const tot=totalLevel();
   if(tot<=0){ avisar('A ficha já está no Nível 0 (Criação).'); return; }
+  ensureLvlOrder();
   const novo=tot-1;
   const rem=itensDoNivel(tot);
-  let msg='Descer para o Nível '+novo+'?';
+  const idx = LVLORD.length ? LVLORD[LVLORD.length-1] : lastClassIdx();   // última classe efetivamente subida
+  const bcRem = baseClasse(idx===1?vById('classe'):vById('mc-classe-'+idx));
+  let msg='Descer para o Nível '+novo+' — removendo 1 nível de '+(bcRem||'classe')+'?';
   if(rem.length) msg+='\n\nIsto vai REMOVER as escolhas feitas no Nível '+tot+':\n• '+rem.join('\n• ');
   if(novo===0) msg+='\n\nA ficha voltará ao Nível 0 (Criação) e os ATRIBUTOS serão destravados.';
   if(!confirm(msg)) return;
   removerItensDoNivel(tot);
-  const idx=lastClassIdx();
+  LVLORD.pop();
   const nl=classLevelOf(idx)-1;
-  if(nl<=0 && idx!==1){ removeMulti(idx); }   // classe extra zerada: remove
-  else setClassLevel(idx, Math.max(0,nl));
+  if(nl<=0 && idx!==1){
+    const tinha3 = mcShown[3] && vById('mc-classe-3');
+    removeMulti(idx);                                   // classe extra zerada: remove o slot
+    if(idx===2 && tinha3) LVLORD = LVLORD.map(x=> x===3?2:x);   // slot 3 passou a ser o slot 2
+  } else {
+    setClassLevel(idx, Math.max(0,nl));
+  }
   renderListas(); recalc(); salvar();
-  avisar('Ficha agora no Nível '+totalLevel()+'.'+(rem.length?(' Removidas: '+rem.join(', ')+'.'):''), true);
+  avisar('Ficha agora no Nível '+totalLevel()+' (−1 de '+(bcRem||'classe')+').'+(rem.length?(' Removidas: '+rem.join(', ')+'.'):''), true);
 }
 // Trava os atributos fora do Nível 0; trava o nível das classes que não são a última
 function applyLocks(){
@@ -1762,9 +1816,10 @@ function applyLocks(){
   // displays do painel de progressão
   const lt=document.getElementById('lvlTotal'); if(lt) lt.innerHTML = criacao ? '0' : totalLevel();
   const ll=document.getElementById('lvlLast');
-  if(ll){ const c=nomeUltimaClasse(); ll.innerHTML = criacao
+  if(ll){ ll.innerHTML = criacao
     ? '<span class="creationtag">NÍVEL 0 — CRIAÇÃO</span> atributos liberados; escolha a 1ª classe para começar.'
-    : (c?`Sobe a última classe: <b>${baseClasse(c)}</b> (Nível ${classLevelOf(lastClassIdx())} nela)`:''); }
+    : (()=>{ const ps=classesPresentes().filter(p=>classLevelOf(p.idx)>0);
+        return ps.length ? 'Níveis por classe: '+ps.map(p=>`<b>${baseClasse(p.c)}</b> ${classLevelOf(p.idx)}`).join(' · ') : ''; })(); }
 }
 function aoEditarAtributo(){   // chamado quando o usuário tenta editar um atributo travado
   if(totalLevel()>0){ avisar('Atributos só podem ser editados no Nível 0 (Criação). Para alterá-los, desça a ficha até o Nível 0. Do Nível 1 em diante, use as setas ▲▼ quando ganhar um Aumento de Habilidade.'); return false; }
@@ -1826,9 +1881,11 @@ function asiAddFeat(key,selId){
   const v=sel.value;
   if(!v){ avisar('Escolha um talento na lista antes de clicar em “+ Adicionar”.'); return; }
   const a=ASI[key]; if(!a) return;
-  // alerta (não bloqueia) se o mesmo talento já está em outro Aumento ou na lista de Talentos da página 2
-  const outroASI = asiSlots().some(s=>s.key!==key && ASI[s.key] && ASI[s.key].tipo==='feat' && ASI[s.key].feat===v);
-  if((LISTAS.tal.includes(v) || outroASI)){ avisar('Atenção: “'+v+'” já consta na ficha — só repita se o talento permitir ser adquirido mais de uma vez.'); }
+  // não repetível: bloqueia se já estiver na lista da página 2 ou em outro Aumento de Habilidade
+  if(!itemRepetivel(v)){
+    const outroASI = asiSlots().some(s=>s.key!==key && ASI[s.key] && ASI[s.key].tipo==='feat' && ASI[s.key].feat===v);
+    if(LISTAS.tal.includes(v) || outroASI){ avisar('“'+v+'” não pode ser escolhido mais de uma vez — já está na ficha.'); return; }
+  }
   a.feat=v; recalc(); salvar();
   avisar('🎯 Talento “'+v+'” adicionado aos cálculos da ficha.', true);
 }
@@ -1852,10 +1909,12 @@ function renderASI(){
       const det=ATRIBUTOS.filter(at=>a.gasto[at.k]).map(at=>`+${a.gasto[at.k]} ${at.abrev}`).join(', ')||'nada ainda';
       inner=`<div class="asidone">💪 <b>Atributos</b> (${asiGastoSlot(a)}/2 — ${det}). Use as setas ▲▼ nos atributos. <a href="#" onclick="asiEscolha('${s.key}','');return false;">trocar escolha</a></div>`;
     } else {
-      const optHtml = arr => arr.map(n=>`<option${a.feat===n?' selected':''}>${n}</option>`).join('');
-      const opts='<option value="">— escolha um talento —</option>'
-        + Object.keys(TALENTOS).map(cat=>`<optgroup label="${cat}">`+optHtml(TALENTOS[cat])+'</optgroup>').join('')
-        + `<optgroup label="Nível Zero (Aliança de Heróis)">`+optHtml(TALENTOS_NZ)+'</optgroup>';
+      const chosen=new Set(talentosEscolhidos().filter(n=>!itemRepetivel(n)));
+      // mostra o talento já escolhido neste slot, oculta os escolhidos em outro lugar (não repetíveis)
+      const optHtml = arr => arr.filter(n=> n===a.feat || !chosen.has(n)).map(n=>`<option${a.feat===n?' selected':''}>${n}</option>`).join('');
+      let opts='<option value="">— escolha um talento —</option>';
+      for(const cat in TALENTOS){ if(!(talentoCatValida(cat)||TALENTOS[cat].includes(a.feat))) continue; const body=optHtml(TALENTOS[cat]); if(body) opts+=`<optgroup label="${cat}">`+body+'</optgroup>'; }
+      const nz=optHtml(TALENTOS_NZ); if(nz) opts+=`<optgroup label="Nível Zero (Aliança de Heróis)">`+nz+'</optgroup>';   // Nível Zero sempre disponível
       const selId='asisel-'+s.key;
       const ok = a.feat ? ` <span style="color:var(--good);font-weight:700;">✓ ${a.feat} <span class="small">(nos cálculos)</span></span>` : '';
       inner=`<div class="asidone">🎯 <b>Talento:</b> <select id="${selId}">${opts}</select> <button class="addbtn" onclick="asiAddFeat('${s.key}','${selId}')">+ Adicionar</button>${ok} <a href="#" onclick="asiEscolha('${s.key}','');return false;">trocar escolha</a></div>`;
@@ -2010,7 +2069,8 @@ function recalc(){
   renderMulti();
   applyLocks();
   renderASI();          // pontos/painel de Aumento de Habilidade
-  popHabSelect();       // filtra o seletor de Habilidades de Classe pela classe/nível atuais
+  refreshPickers();     // refaz os seletores (tal/hab/qual/def/mag) ocultando repetidos e itens fora do nível
+  gateSubclasse('subclasse', vById('classe'), classLevelOf(1));   // subclasse da classe principal: só do 3º nível
   renderDescricoes();   // atualiza as habilidades automáticas por nível ao subir/descer
   salvar();
 }
@@ -2090,31 +2150,56 @@ function computeBonuses(){
 
 function escAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function optTitle(n){ const d = DESC[n]; return d ? ` title="${escAttr(d)}"` : ''; }
+
+// === REGRAS DE ESCOLHA: repetição e validade por nível ===
+// Regra geral: um item NÃO pode ser escolhido mais de uma vez — exceto se a DESCRIÇÃO disser que pode.
+function itemRepetivel(n){ return /mais de uma vez|repet[íi]vel/i.test(DESC[n]||''); }
+// Talentos já escolhidos em qualquer lugar (lista da página 2 + Aumentos de Habilidade)
+function talentosEscolhidos(){ return [].concat(LISTAS.tal, asiFeatsEscolhidos()); }
+// Categoria de talento liberada para o nível total atual (D&D 2024)
+function talentoCatValida(cat){
+  const lv=totalLevel();
+  if(cat==='Dádiva Épica') return lv>=19;   // Dádivas Épicas: a partir do 19º nível
+  if(cat==='Geral')        return lv>=4;    // Talentos Gerais: a partir do 4º nível
+  return true;                              // Origem · Estilo de Luta · Nível Zero (sempre)
+}
+// (Re)constrói o seletor de Talentos da página 2: oculta os já escolhidos não repetíveis e os de categoria fora do nível
+function popTalSelect(){
+  const sel=document.getElementById('sel-tal'); if(!sel) return;
+  const prev=sel.value;
+  const chosen=new Set(talentosEscolhidos().filter(n=>!itemRepetivel(n)));
+  const mk = arr => arr.filter(n=>!chosen.has(n)).map(n=>`<option${optTitle(n)}>${n}</option>`).join('');
+  let h='<option value="">— escolha um talento —</option>';
+  for(const cat in TALENTOS){ if(!talentoCatValida(cat)) continue; const body=mk(TALENTOS[cat]); if(body) h+=`<optgroup label="${cat}">`+body+'</optgroup>'; }
+  const nz=mk(TALENTOS_NZ); if(nz) h+=`<optgroup label="Nível Zero (Aliança de Heróis)">`+nz+'</optgroup>';   // Nível Zero sempre disponível
+  sel.innerHTML=h;
+  if(prev && [...sel.options].some(o=>o.value===prev)) sel.value=prev;
+}
+// (Re)constrói qual/def/mag ocultando os já escolhidos (tal e hab têm funções próprias)
+function refreshPickers(){
+  popTalSelect(); popHabSelect();
+  const opSel=(id,arr,chosen)=>{ const sel=document.getElementById(id); if(!sel) return; const prev=sel.value;
+    sel.innerHTML='<option value="">— escolha —</option>'+arr.filter(o=>!chosen.has(o.n)).map(o=>{const s=o.p>1?'s':''; return `<option value="${o.n}"${optTitle(o.n)}>${o.n} (${o.p}${o.var?'+':''} pt${s})</option>`;}).join('');
+    if(prev && [...sel.options].some(o=>o.value===prev)) sel.value=prev; };
+  opSel('sel-qual',QUALIDADES,new Set(LISTAS.qual));
+  opSel('sel-def', DEFEITOS, new Set(LISTAS.def));
+  const selMag=document.getElementById('sel-mag');
+  if(selMag){ const prev=selMag.value, chosen=new Set(LISTAS.mag); let hm='<option value="">— escolha um item mágico —</option>';
+    for(const r in ITENS_MAGICOS){ const body=ITENS_MAGICOS[r].filter(n=>!chosen.has(n)).map(n=>`<option${optTitle(n)}>${n}</option>`).join(''); if(body) hm+=`<optgroup label="${r}">`+body+'</optgroup>'; }
+    selMag.innerHTML=hm; if(prev && [...selMag.options].some(o=>o.value===prev)) selMag.value=prev; }
+}
+// Habilita/bloqueia um campo de Subclasse: só a partir do 3º nível da classe e só se a classe tiver subclasses
+function gateSubclasse(inputId, classVal, lv){
+  const e=document.getElementById(inputId); if(!e) return;
+  const info=CLASSES[classVal];   // CLASSES é indexado pelo nome COM sufixo ★/✦
+  const temSub=info && info.sub && info.sub.length;
+  if(!classVal || !temSub){ e.readOnly=true; e.classList.add('locked'); e.placeholder = classVal?'(esta classe não tem subclasse)':''; if(!temSub) e.value=''; return; }
+  if(lv>=3){ e.readOnly=false; e.classList.remove('locked'); e.placeholder='escolha a subclasse'; }
+  else { e.readOnly=true; e.classList.add('locked'); e.placeholder='subclasse a partir do 3º nível'; }
+}
+
 function popListSelects(){
-  let h = '<option value="">— escolha um talento —</option>';
-  for(const cat in TALENTOS){
-    h += `<optgroup label="${cat}">` + TALENTOS[cat].map(n=>`<option${optTitle(n)}>${n}</option>`).join('') + '</optgroup>';
-  }
-  h += `<optgroup label="Nível Zero (Aliança de Heróis)">` + TALENTOS_NZ.map(n=>`<option${optTitle(n)}>${n}</option>`).join('') + '</optgroup>';
-  document.getElementById('sel-tal').innerHTML = h;
-
-  popHabSelect();   // só os grupos das classes presentes na ficha, conforme o nível
-
-  const op = (arr) => '<option value="">— escolha —</option>' + arr.map(o=>{
-    const s = o.p>1?'s':'';
-    return `<option value="${o.n}"${optTitle(o.n)}>${o.n} (${o.p}${o.var?'+':''} pt${s})</option>`;
-  }).join('');
-  document.getElementById('sel-qual').innerHTML = op(QUALIDADES);
-  document.getElementById('sel-def').innerHTML  = op(DEFEITOS);
-
-  const selMag = document.getElementById('sel-mag');
-  if(selMag){
-    let hm = '<option value="">— escolha um item mágico —</option>';
-    for(const r in ITENS_MAGICOS){
-      hm += `<optgroup label="${r}">` + ITENS_MAGICOS[r].map(n=>`<option${optTitle(n)}>${n}</option>`).join('') + '</optgroup>';
-    }
-    selMag.innerHTML = hm;
-  }
+  refreshPickers();   // tal · hab · qual · def · mag — já filtrando repetidos e validade de nível
 
   // Caixinha de resumo que aparece ao navegar/passar pelos itens do seletor
   ['tal','hab','qual','def','mag'].forEach(t=>{
@@ -2141,8 +2226,10 @@ function addItem(t){
       }
     }
   }
-  // TRAVA: não repetir item já escolhido
-  if(LISTAS[t].includes(nome)){ avisar('“'+nome+'” já está na ficha.'); sel.value=''; return; }
+  // TRAVA: não repetir item já escolhido (talentos repetíveis — que dizem isso na descrição — são exceção)
+  if(LISTAS[t].includes(nome) && !(t==='tal' && itemRepetivel(nome))){
+    avisar('“'+nome+'” já está na ficha e não pode ser escolhido mais de uma vez.'); sel.value=''; return;
+  }
   LISTAS[t].push(nome);
   PROV[t][nome] = totalLevel();   // registra o nível em que foi adicionado
   sel.value='';
@@ -2216,6 +2303,7 @@ function coletar(){
   d.__recursos = RECVALS;
   d.__prov = PROV;
   d.__asi = ASI;
+  d.__lvlord = LVLORD.slice();
   return d;
 }
 function aplicar(d){
@@ -2245,6 +2333,8 @@ function aplicar(d){
   });
   // visibilidade das classes extras conforme dados carregados
   mcShown[2] = !!d['mc-classe-2']; mcShown[3] = !!d['mc-classe-3'];
+  LVLORD = Array.isArray(d.__lvlord) ? d.__lvlord.slice() : [];
+  ensureLvlOrder();   // reconstrói se a ficha for antiga ou estiver inconsistente
   onClasse();
   renderListas();
 }
@@ -2304,7 +2394,7 @@ function limpar(){
   localStorage.removeItem(KEY);
   document.querySelectorAll('[data-k]').forEach(el=>{ if(el.type==='checkbox') el.checked=false; else el.value=''; });
   LISTAS.tal=[]; LISTAS.hab=[]; LISTAS.qual=[]; LISTAS.def=[]; LISTAS.mag=[]; RECVALS={};
-  PROV={tal:{},hab:{},qual:{},def:{},mag:{}}; ASI={};
+  PROV={tal:{},hab:{},qual:{},def:{},mag:{}}; ASI={}; LVLORD=[];
   mcShown={2:false,3:false}; syncMulti();
   document.getElementById('nivel').value=0;   // volta ao Nível 0 (Criação)
   onClasse(); renderListas(); recalc();
