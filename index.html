@@ -1424,6 +1424,29 @@ function casterLevel(){
 // Grupo de Habilidades de Classe a que um item pertence, e a classe correspondente
 function habGroupOf(name){ for(const g in HAB_CLASSE){ if(HAB_CLASSE[g].includes(name)) return g; } return null; }
 function classOfGroup(g){ return g ? g.split(' — ')[0].trim() : null; }
+// Nível mínimo de um grupo de habilidades (lido do rótulo "...a partir do Nº nível"; senão 1)
+function habMinLevel(group){ const m=(group||'').match(/a partir do\s+(\d+)/i); return m?parseInt(m[1]):1; }
+// Mapa {Classe: maior nível na ficha} das classes atualmente presentes
+function classLevels(){ const o={}; classesArr().forEach(x=>{ const b=baseClasse(x.c); if(b) o[b]=Math.max(o[b]||0, x.lv||0); }); return o; }
+// (Re)constrói o seletor de Habilidades de Classe mostrando SÓ os grupos das classes
+// presentes na ficha que já atingiram o nível mínimo do grupo.
+function popHabSelect(){
+  const sel=document.getElementById('sel-hab'); if(!sel) return;
+  const prev=sel.value;
+  const niveis=classLevels();
+  let hh='', algum=false;
+  for(const grp in HAB_CLASSE){
+    const cls=classOfGroup(grp), lv=niveis[cls];
+    if(lv===undefined) continue;            // classe não está na ficha
+    if(lv<habMinLevel(grp)) continue;       // ainda não atingiu o nível do grupo
+    algum=true;
+    hh+=`<optgroup label="${grp}">`+HAB_CLASSE[grp].map(n=>`<option${optTitle(n)}>${n}</option>`).join('')+'</optgroup>';
+  }
+  sel.innerHTML = algum
+    ? '<option value="">— escolha uma habilidade —</option>'+hh
+    : '<option value="">— nenhuma habilidade escolhível para sua classe/nível —</option>';
+  if(prev && [...sel.options].some(o=>o.value===prev)) sel.value=prev;   // preserva escolha em curso
+}
 // Verifica pré-requisito (≥13). Retorna {ok, txt}
 function prereqClasse(b){
   const req = PRIMARIO[b];
@@ -1987,6 +2010,7 @@ function recalc(){
   renderMulti();
   applyLocks();
   renderASI();          // pontos/painel de Aumento de Habilidade
+  popHabSelect();       // filtra o seletor de Habilidades de Classe pela classe/nível atuais
   renderDescricoes();   // atualiza as habilidades automáticas por nível ao subir/descer
   salvar();
 }
@@ -2074,11 +2098,7 @@ function popListSelects(){
   h += `<optgroup label="Nível Zero (Aliança de Heróis)">` + TALENTOS_NZ.map(n=>`<option${optTitle(n)}>${n}</option>`).join('') + '</optgroup>';
   document.getElementById('sel-tal').innerHTML = h;
 
-  let hh = '<option value="">— escolha uma habilidade —</option>';
-  for(const grp in HAB_CLASSE){
-    hh += `<optgroup label="${grp}">` + HAB_CLASSE[grp].map(n=>`<option${optTitle(n)}>${n}</option>`).join('') + '</optgroup>';
-  }
-  document.getElementById('sel-hab').innerHTML = hh;
+  popHabSelect();   // só os grupos das classes presentes na ficha, conforme o nível
 
   const op = (arr) => '<option value="">— escolha —</option>' + arr.map(o=>{
     const s = o.p>1?'s':'';
