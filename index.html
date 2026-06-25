@@ -205,6 +205,8 @@
   .addrow select{flex:1;}
   .addbtn{background:var(--accent); color:#fff; border:1px solid #5a1717; border-radius:6px; padding:6px 12px; cursor:pointer; font-weight:700; white-space:nowrap;}
   .addbtn:hover{background:#922626;}
+  .intbtn{border:1px solid var(--accent2); background:#fff; color:var(--accent); border-radius:4px; width:18px; height:18px; line-height:1; cursor:pointer; font-weight:800; padding:0; font-size:11px;}
+  .intbtn:hover{background:var(--hl);}
   .chips{display:flex; flex-wrap:wrap; gap:5px; margin-top:8px;}
   .chip{background:#fff; border:1px solid var(--line); border-radius:14px; padding:3px 4px 3px 9px; font-size:11px; display:inline-flex; align-items:center; gap:6px;}
   .chip .pts{color:var(--muted); font-size:9px; background:var(--hl); border-radius:8px; padding:0 5px;}
@@ -381,7 +383,7 @@
         <datalist id="dl-sub"></datalist>
       </div>
       <div class="field"><label>Espécie</label>
-        <input id="especie" list="dl-esp" data-k>
+        <input id="especie" list="dl-esp" data-k oninput="onEspecie()">
         <datalist id="dl-esp"></datalist>
       </div>
       <div class="field"><label>Antecedente</label>
@@ -401,6 +403,12 @@
       <div class="field"><label>Jogador</label><input id="jogador" data-k></div>
     </div>
     <div class="comp" id="compClasses"></div>
+  </div>
+
+  <!-- Traços de Espécie -->
+  <div class="panel noprint" id="racaPanel" style="margin-bottom:9px; display:none;">
+    <h3>🧬 Traços de Espécie <span class="small">— efeitos aplicados nos cálculos; algumas espécies têm escolhas</span></h3>
+    <div id="racaBox"></div>
   </div>
 
   <!-- Progressão de nível -->
@@ -765,6 +773,71 @@ const CLASSES = {
 // ★ = homebrew do livro Aliança de Heróis · ✦ = Suplemento AdH (Grupo Pró=RPG)
 
 const ESPECIES = ['Aasimar','Anão','Draconato','Elfo','Gnomo','Golias','Humano','Orc','Pequenino','Tiferino'];
+// Efeitos mecânicos das espécies (D&D 2024) — desloc (m), escuro=visão no escuro (m), hpL=PV/nível,
+// adv=vantagens em salvaguardas, resist=resistências, tracos=traços (texto funcional), escolhas=opções do jogador.
+const RACAS = {
+  'Humano': {desloc:9, escuro:0,
+    tracos:['Engenhoso: recupera Inspiração Heroica a cada descanso longo.','Versátil: ganha 1 Talento de Origem (escolha na seção 🎯 Talentos).'],
+    escolhas:[{id:'hab',tipo:'pericia',n:1,label:'Habilidoso: proficiência em 1 perícia à escolha'}]},
+  'Anão': {desloc:9, escuro:36, hpL:1, resist:['Veneno'], adv:['Salvaguardas contra Veneno'],
+    tracos:['Tenacidade Anã: +1 PV no 1º nível e +1 por nível.','Resistência Anã: resistência a dano Venenoso.','Conhecimento de Pedra: Sentido Sísmico de 18 m por 10 min (Bônus de Proficiência usos/descanso longo).']},
+  'Elfo': {desloc:9, escuro:18, adv:['Salvaguardas contra Enfeitiçado'],
+    tracos:['Ancestralidade Feérica: vantagem em salvaguardas para evitar/encerrar Enfeitiçado.','Transe: descanso longo em 4 horas; imune a sono mágico.'],
+    escolhas:[
+      {id:'sentidos',tipo:'pericia',n:1,label:'Sentidos Aguçados: 1 perícia entre Intuição, Percepção e Sobrevivência',opcoes:['Intuição','Percepção','Sobrevivência']},
+      {id:'linhagem',tipo:'opcao',label:'Linhagem Élfica',opcoes:[
+        {nome:'Alto Elfo',traco:'Truque de Mago à escolha (troca em descanso longo).'},
+        {nome:'Elfo da Floresta',traco:'Deslocamento 10,5 m; truque Druidismo.'},
+        {nome:'Drow',traco:'Visão no Escuro 36 m; magias por nível (Globos de Luz, Fogo das Fadas, Escuridão).',escuro:36}]}]},
+  'Draconato': {desloc:9, escuro:18,
+    tracos:['Sopro de Dragão: substitui um ataque por um sopro do tipo da ancestralidade (salvaguarda).','Voo Dracônico: asas de energia no 5º nível.'],
+    escolhas:[{id:'ancestral',tipo:'opcao',label:'Ancestralidade Dracônica (tipo de dano)',opcoes:[
+      {nome:'Ácido (Negro/Cobre)',resist:'Ácido'},{nome:'Elétrico (Azul/Bronze)',resist:'Elétrico'},
+      {nome:'Venenoso (Verde)',resist:'Veneno'},{nome:'Ígneo (Vermelho/Ouro/Latão)',resist:'Fogo'},{nome:'Frio (Branco/Prata)',resist:'Frio'}]}]},
+  'Gnomo': {desloc:9, escuro:18, adv:['Salvaguardas de Inteligência, Sabedoria e Carisma'],
+    tracos:['Astúcia Gnômica: vantagem em salvaguardas mentais (Int, Sab e Car).'],
+    escolhas:[{id:'linhagem',tipo:'opcao',label:'Linhagem Gnômica',opcoes:[
+      {nome:'Gnomo da Floresta',traco:'Truque Ilusão Menor; fala com pequenos animais.'},
+      {nome:'Gnomo da Rocha',traco:'Conhecimento de engenhocas; cria pequenos dispositivos.'}]}]},
+  'Golias': {desloc:10.5, escuro:0,
+    tracos:['Construção Poderosa: conta como Grande para carga; vantagem contra ser Agarrado.','Passos Largos: deslocamento 10,5 m.'],
+    escolhas:[{id:'gigante',tipo:'opcao',label:'Ancestralidade Gigante',opcoes:[
+      {nome:'Gigante da Pedra',traco:'Reação para reduzir dano.'},{nome:'Gigante do Fogo',traco:'Dano Ígneo extra.'},
+      {nome:'Gigante do Gelo',traco:'Reduz o deslocamento do alvo.'},{nome:'Gigante das Nuvens',traco:'Teleporte curto.'},
+      {nome:'Gigante das Colinas',traco:'Derruba o alvo.'},{nome:'Gigante das Tempestades',traco:'Dano Trovejante em reação.'}]}]},
+  'Orc': {desloc:9, escuro:36,
+    tracos:['Investida Adrenalizada: Disparada como ação bônus (Bônus de Proficiência usos/descanso).','Resistência Implacável: 1×/descanso longo, ao cair a 0 PV fica com 1.']},
+  'Pequenino': {desloc:9, escuro:0, adv:['Salvaguardas contra Amedrontado'],
+    tracos:['Sortudo: rerola um 1 natural no d20.','Bravura: vantagem em salvaguardas contra Amedrontado.','Agilidade Halfling: move-se através do espaço de criaturas maiores.','Furtividade Natural: pode se Esconder atrás de criaturas maiores.']},
+  'Tiferino': {desloc:9, escuro:18,
+    tracos:['Otária Diabólica: resistência e magias conforme o Legado escolhido (por nível).'],
+    escolhas:[{id:'legado',tipo:'opcao',label:'Legado Ínfero',opcoes:[
+      {nome:'Abissal',resist:'Veneno'},{nome:'Quiprótico',resist:'Necrótico'},{nome:'Infernal',resist:'Fogo'}]}]},
+  'Aasimar': {desloc:9, escuro:18, resist:['Necrótico','Radiante'],
+    tracos:['Resistência Celestial: resistência a dano Necrótico e Radiante.','Mãos Curandeiras: cura Bônus de Prof. × d4 (1×/descanso longo).','Portador de Luz: você conhece o truque Luz.','Revelação Celestial: um modo de transformação à escolha no 3º nível.']}
+};
+let RACASEL = {};            // escolhas de espécie do jogador: { idDaEscolha: valor }
+let RACAPER = new Set();     // perícias concedidas pela espécie (proficiência), recalculadas em computeBonuses
+let _lastEsp = '';
+function renderRaca(){
+  const panel=document.getElementById('racaPanel'), box=document.getElementById('racaBox'); if(!box) return;
+  const esp=(vById('especie')||'').trim(), r=RACAS[esp];
+  if(!r){ if(panel) panel.style.display='none'; box.innerHTML=''; return; }
+  if(panel) panel.style.display='block';
+  let escuro=r.escuro||0; const resist=[...(r.resist||[])];
+  (r.escolhas||[]).forEach(e=>{ if(e.tipo==='opcao'){ const o=(e.opcoes||[]).find(x=>x.nome===RACASEL[e.id]); if(o){ if(o.escuro) escuro=Math.max(escuro,o.escuro); if(o.resist) resist.push(o.resist); } }});
+  let h=`<div class="small" style="margin-bottom:6px;"><b>${esp}</b> — Deslocamento <b>${(''+r.desloc).replace('.',',')} m</b>${escuro?` · Visão no Escuro <b>${escuro} m</b>`:''}${resist.length?` · Resistência a <b>${resist.join(', ')}</b>`:''}</div>`;
+  h+='<ul style="margin:4px 0 6px 18px; padding:0;">'+(r.tracos||[]).map(t=>`<li class="small">${t}</li>`).join('')+'</ul>';
+  (r.escolhas||[]).forEach(e=>{
+    let opts;
+    if(e.tipo==='pericia'){ const lista=e.opcoes||PERICIA_NAMES; opts='<option value="">— escolher —</option>'+lista.map(s=>`<option${RACASEL[e.id]===s?' selected':''}>${s}</option>`).join(''); }
+    else { opts='<option value="">— escolher —</option>'+(e.opcoes||[]).map(o=>`<option${RACASEL[e.id]===o.nome?' selected':''}>${o.nome}</option>`).join(''); }
+    h+=`<div class="addrow" style="margin:4px 0;"><label class="small" style="min-width:240px;display:inline-block;">${e.label}:</label> <select onchange="racaPick('${e.id}',this.value)">${opts}</select></div>`;
+  });
+  box.innerHTML=h;
+}
+function racaPick(id,val){ if(val) RACASEL[id]=val; else delete RACASEL[id]; recalc(); salvar(); }
+function onEspecie(){ const e=(vById('especie')||'').trim(); if(e!==_lastEsp){ RACASEL={}; _lastEsp=e; } recalc(); salvar(); }
 const ANTECEDENTES = ['Acólito','Andarilho','Artesão','Artista','Charlatão','Criminoso','Eremita','Escriba','Fazendeiro','Guarda','Guia','Marinheiro','Mercador','Nobre','Sábio','Soldado'];
 
 // TALENTOS do Livro do Jogador 2024 (PT-BR), agrupados por categoria
@@ -2020,7 +2093,7 @@ function recalc(){
   // perícias (inclui bônus de itens: por atributo BON.chk e por perícia BON.skill)
   let perc = 0;
   PERICIAS.forEach((p,i)=>{
-    const prof = document.getElementById('pf-'+i).checked;
+    const prof = document.getElementById('pf-'+i).checked || RACAPER.has(p[0]);
     const exp  = document.getElementById('ex-'+i).checked;
     let bonus = m[p[1]];
     if(prof) bonus += exp ? pb*2 : pb;
@@ -2031,6 +2104,7 @@ function recalc(){
     const mk = document.getElementById('mk-'+i);
     if(mk){
       let s='';
+      if(RACAPER.has(p[0])) s += `<span class="adv" style="color:#3c7a3f" title="Proficiência concedida pela espécie">●</span>`;
       if(BON.advSkill[p[0]]) s += `<span class="adv" title="Vantagem em ${p[0]} por: ${BON.advSkill[p[0]].join('; ')}">▲</span>`;
       if(BON.disSkill[p[0]]) s += `<span class="dis" title="Desvantagem em ${p[0]} por: ${BON.disSkill[p[0]].join('; ')}">▼</span>`;
       mk.innerHTML = s;
@@ -2098,6 +2172,7 @@ function recalc(){
   refreshPickers();     // refaz os seletores (tal/hab/qual/def/mag) ocultando repetidos e itens fora do nível
   gateSubclasse('subclasse', vById('classe'), classLevelOf(1));   // subclasse da classe principal: só do 3º nível
   renderSpells();       // seletor de magias por classe conjuradora, filtrado por círculo/nível
+  renderRaca();         // traços de espécie + escolhas (efeitos já aplicados em computeBonuses)
   renderDescricoes();   // atualiza as habilidades automáticas por nível ao subir/descer
   salvar();
 }
@@ -2127,6 +2202,9 @@ function renderBonusPanels(){
 const LISTAS = {tal:[], hab:[], qual:[], def:[], mag:[]};
 let MAGSEL = {};   // magias escolhidas por classe conjuradora: { 'Bardo':[nomes...], ... }
 let GRIMNOTAS = {};   // anotações de descrição por magia no Grimório: { 'Bola de Fogo':'...' }
+let INTENS = {};      // intensidade de qualidades/defeitos variáveis: { 'qual|Herança': 3, ... }
+function intensOf(t,n){ return INTENS[t+'|'+n] || 1; }
+function setIntens(t,n,delta){ let v=(INTENS[t+'|'+n]||1)+delta; v=Math.max(1,Math.min(10,v)); INTENS[t+'|'+n]=v; renderListas(); salvar(); }
 const QMAP = {}, DMAP = {};
 QUALIDADES.forEach(q=>QMAP[q.n]=q);
 DEFEITOS.forEach(d=>DMAP[d.n]=d);
@@ -2173,6 +2251,14 @@ function computeBonuses(){
     else if(kind==='ca'){ acc.ca+=val; acc.list.push(`${lbl}: CA ${sign}${val}`); }
     else if(kind==='pp'){ acc.pp+=val; acc.list.push(`${lbl}: Percepção Passiva ${sign}${val}`); }
     else if(kind==='hpL'){ acc.hpL+=val; acc.list.push(`${lbl}: PV ${sign}${val}/nível`); }
+  }
+  // ===== Espécie (D&D 2024): aplica efeitos mecânicos =====
+  RACAPER = new Set();
+  const _esp=(vById('especie')||'').trim(), _r=RACAS[_esp];
+  if(_r){
+    if(_r.hpL){ acc.hpL+=_r.hpL; acc.list.push(`${_esp}: PV ${_r.hpL>0?'+':''}${_r.hpL}/nível`); }
+    if(_r.adv){ _r.adv.forEach(t=>{ if(PERICIA_NAMES.includes(t)){(acc.advSkill[t]=acc.advSkill[t]||[]).push(_esp);} else acc.advOther.push({t,src:_esp}); }); }
+    (_r.escolhas||[]).forEach(e=>{ if(e.tipo==='pericia'){ const v=RACASEL[e.id]; if(v&&PERICIA_NAMES.includes(v)) RACAPER.add(v); } });
   }
   BON = acc;
 }
@@ -2383,12 +2469,14 @@ function addItem(t){
     avisar('“'+nome+'” já está na ficha e não pode ser escolhido mais de uma vez.'); sel.value=''; return;
   }
   LISTAS[t].push(nome);
+  if(ehVar(t,nome)) INTENS[t+'|'+nome] = INTENS[t+'|'+nome] || 1;   // intensidade variável: começa em 1
   PROV[t][nome] = totalLevel();   // registra o nível em que foi adicionado
   sel.value='';
   renderListas(); salvar();
 }
-function removeItem(t,i){ const n=LISTAS[t][i]; if(n) delete PROV[t][n]; LISTAS[t].splice(i,1); renderListas(); salvar(); }
-function ptOf(t,n){ const m = t==='qual'?QMAP[n] : t==='def'?DMAP[n] : null; return m? (m.p + (m.var?'+':'')) : ''; }
+function removeItem(t,i){ const n=LISTAS[t][i]; if(n){ delete PROV[t][n]; delete INTENS[t+'|'+n]; } LISTAS[t].splice(i,1); renderListas(); salvar(); }
+function ptOf(t,n){ const m = t==='qual'?QMAP[n] : t==='def'?DMAP[n] : null; if(!m) return ''; if(m.var){ const k=intensOf(t,n); return m.p*k + (k>1?` (${m.p}×${k})`:''); } return ''+m.p; }
+function ehVar(t,n){ return (t==='qual'&&QMAP[n]&&QMAP[n].var) || (t==='def'&&DMAP[n]&&DMAP[n].var); }
 function renderListas(){
   ['tal','hab','qual','def','mag'].forEach(t=>{
     const box = document.getElementById('chips-'+t);
@@ -2396,12 +2484,13 @@ function renderListas(){
     box.innerHTML = LISTAS[t].length ? LISTAS[t].map((n,i)=>{
       const p = ptOf(t,n);
       const mark = BONUS[n] ? ' <span class="pts" title="aplica bônus automático">⚡</span>' : '';
-      return `<span class="chip">${n}${p?` <span class="pts">${p} pt</span>`:''}${mark}<button title="remover" onclick="removeItem('${t}',${i})">×</button></span>`;
+      const step = ehVar(t,n) ? ` <span class="pts" title="intensidade"><button class="intbtn" onclick="setIntens('${t}','${n}',-1)">−</button> int. ${intensOf(t,n)} <button class="intbtn" onclick="setIntens('${t}','${n}',1)">＋</button></span>` : '';
+      return `<span class="chip">${n}${step}${p?` <span class="pts">${p} pt</span>`:''}${mark}<button title="remover" onclick="removeItem('${t}',${i})">×</button></span>`;
     }).join('') : '<span class="small">nenhum selecionado</span>';
   });
   let pd=0, pq=0;
-  LISTAS.def.forEach(n=>{ if(DMAP[n]) pd+=DMAP[n].p; });
-  LISTAS.qual.forEach(n=>{ if(QMAP[n]) pq+=QMAP[n].p; });
+  LISTAS.def.forEach(n=>{ if(DMAP[n]) pd+=DMAP[n].p*(DMAP[n].var?intensOf('def',n):1); });
+  LISTAS.qual.forEach(n=>{ if(QMAP[n]) pq+=QMAP[n].p*(QMAP[n].var?intensOf('qual',n):1); });
   document.getElementById('ptDef').textContent  = pd;
   document.getElementById('ptQual').textContent = pq;
   const saldo = pd-pq, el = document.getElementById('ptSaldo');
@@ -2458,6 +2547,8 @@ function coletar(){
   d.__lvlord = LVLORD.slice();
   d.__magsel = MAGSEL;
   d.__grim = GRIMNOTAS;
+  d.__racasel = RACASEL;
+  d.__intens = INTENS;
   return d;
 }
 function aplicar(d){
@@ -2491,6 +2582,9 @@ function aplicar(d){
   ensureLvlOrder();   // reconstrói se a ficha for antiga ou estiver inconsistente
   MAGSEL = (d.__magsel && typeof d.__magsel==='object') ? d.__magsel : {};
   GRIMNOTAS = (d.__grim && typeof d.__grim==='object') ? d.__grim : {};
+  RACASEL = (d.__racasel && typeof d.__racasel==='object') ? d.__racasel : {};
+  INTENS = (d.__intens && typeof d.__intens==='object') ? d.__intens : {};
+  _lastEsp = (d['especie']||'').trim();
   onClasse();
   renderListas();
 }
@@ -2550,7 +2644,7 @@ function limpar(){
   localStorage.removeItem(KEY);
   document.querySelectorAll('[data-k]').forEach(el=>{ if(el.type==='checkbox') el.checked=false; else el.value=''; });
   LISTAS.tal=[]; LISTAS.hab=[]; LISTAS.qual=[]; LISTAS.def=[]; LISTAS.mag=[]; RECVALS={};
-  PROV={tal:{},hab:{},qual:{},def:{},mag:{}}; ASI={}; LVLORD=[]; MAGSEL={}; GRIMNOTAS={};
+  PROV={tal:{},hab:{},qual:{},def:{},mag:{}}; ASI={}; LVLORD=[]; MAGSEL={}; GRIMNOTAS={}; RACASEL={}; INTENS={}; _lastEsp='';
   mcShown={2:false,3:false}; syncMulti();
   document.getElementById('nivel').value=0;   // volta ao Nível 0 (Criação)
   onClasse(); renderListas(); recalc();
