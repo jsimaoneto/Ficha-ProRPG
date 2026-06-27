@@ -335,6 +335,83 @@
       -webkit-print-color-adjust:exact; print-color-adjust:exact; }
     .sheet::after{ -webkit-print-color-adjust:exact; print-color-adjust:exact; opacity:.05; }
   }
+
+  /* ===================================================================
+     MÓDULO TOUCH  (zoom por pinça, arraste, formato A4, caixa grande)
+     Acrescentado para deixar a ficha 100% usável em celular/tablet.
+     =================================================================== */
+  #viewport{ position:relative; }
+  #canvasSizer{ position:relative; margin:0 auto; }
+  #canvas{ position:absolute; top:0; left:0; width:max-content; transform-origin:0 0; }
+  /* em telas de toque o palco controla os gestos (sem rolagem/zoom nativo) */
+  html.touch-canvas, html.touch-canvas body{ overscroll-behavior:none; }
+  html.touch-canvas #viewport{ touch-action:none; }
+
+  /* grupo de zoom na barra de ferramentas */
+  #zoomGrp{ display:inline-flex; align-items:center; gap:4px; }
+  #zoomPct{ min-width:48px; text-align:center; font-weight:700; color:#f4ecd8; font-size:12.5px; }
+  #btnUndo:disabled, #btnRedo:disabled{ opacity:.4; cursor:default; }
+
+  /* ---- Formato A4 original preservado em telas pequenas ---- */
+  html.a4 .sheet{
+    width:210mm !important; min-height:297mm !important; margin:18px auto !important;
+    padding:9mm 10mm !important; border-width:3px !important;
+    box-shadow:0 0 0 4px #c9aa63, inset 0 0 0 3px #cdb079, inset 0 0 60px rgba(122,31,31,.06), 0 14px 34px rgba(0,0,0,.7) !important;
+  }
+  html.a4 .abilities{ grid-template-columns:repeat(6,1fr) !important; gap:8px !important; }
+  html.a4 input:not([type=checkbox]):not([type=radio]), html.a4 select, html.a4 textarea{
+    font-size:13px !important; padding:5px 6px !important; min-height:0 !important;
+  }
+  html.a4 textarea{ min-height:48px !important; }
+  html.a4 .ability input.score{ font-size:15px !important; width:54px !important; padding:3px !important; min-height:0 !important; }
+  html.a4 .line{ grid-template-columns:18px 30px 1fr 22px !important; font-size:11.5px !important; padding:1.5px 0 !important; }
+  html.a4 .line input[type=checkbox]{ width:14px !important; height:14px !important; }
+  html.a4 .exp input{ width:12px !important; height:12px !important; }
+  html.a4 table.atk{ font-size:11px !important; }
+  html.a4 table.atk input{ font-size:11px !important; padding:2px 3px !important; }
+  html.a4 .mast-in{ font-size:11px !important; }
+  html.a4 .banner .title{ font-size:30px !important; letter-spacing:3px !important; }
+  html.a4 .banner .sub{ letter-spacing:4px !important; }
+  html.a4 .banner-top{ gap:18px !important; }
+  html.a4 .logo-seal{ width:68px !important; height:68px !important; }
+  html.a4 .seal{ width:52px !important; height:52px !important; }
+  html.a4 .brand{ flex-direction:row !important; align-items:flex-end !important; }
+  html.a4 .brand .t2{ text-align:right !important; }
+  html.a4 .emblem-box{ float:right !important; width:106px !important; margin:0 0 6px 12px !important; }
+  html.a4 .invrow, html.a4 .cbrow{ flex-wrap:nowrap !important; }
+
+  /* botão flutuante "caixa grande de texto" */
+  #bigEditBtn{
+    position:fixed; right:12px; bottom:12px; z-index:120; display:none;
+    background:var(--accent); color:#fff; border:1px solid #5a1717; border-radius:26px;
+    padding:13px 18px; font-size:15px; font-weight:700; cursor:pointer;
+    box-shadow:0 5px 16px rgba(0,0,0,.45);
+  }
+  /* sobreposição com a caixa grande de digitação */
+  .be-ov{ position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.55);
+    display:flex; align-items:center; justify-content:center; padding:14px; }
+  .be-box{ background:var(--paper); color:var(--ink); width:min(680px,96vw); max-height:92vh;
+    border-radius:12px; border:2px solid var(--accent2); display:flex; flex-direction:column;
+    box-shadow:0 16px 50px rgba(0,0,0,.6); overflow:hidden; }
+  .be-h{ display:flex; justify-content:space-between; align-items:center;
+    background:var(--accent); color:#fff; padding:12px 14px; font-weight:700; font-size:15px; }
+  .be-h button{ background:transparent; border:none; color:#fff; font-size:22px; cursor:pointer; line-height:1; }
+  #beText{ border:none; outline:none; resize:none; width:100%; flex:1; min-height:42vh;
+    font-size:17px; line-height:1.5; padding:14px; background:#fffef9; color:var(--ink); font-family:inherit; }
+  .be-foot{ display:flex; justify-content:flex-end; gap:10px; padding:10px 12px; border-top:1px solid var(--line2); background:#fbf6e8; }
+
+  /* dica de gestos exibida uma vez */
+  #gestureTip{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:130;
+    background:#26221b; color:#f4ecd8; border:1px solid var(--accent2); border-radius:24px;
+    padding:11px 16px; font-size:13px; max-width:92vw; text-align:center; transition:opacity .5s;
+    box-shadow:0 6px 18px rgba(0,0,0,.5); }
+
+  @media print{
+    /* impressão/PDF: anula o palco para sair em A4 perfeito */
+    #canvas{ transform:none !important; position:static !important; width:auto !important; }
+    #canvasSizer{ width:auto !important; height:auto !important; margin:0 !important; position:static !important; }
+    #bigEditBtn, .be-ov, #gestureTip{ display:none !important; }
+  }
 </style>
 </head>
 <body>
@@ -347,6 +424,15 @@
   <button class="tool ghost" onclick="document.getElementById('imp').click()">📂 Abrir dados</button>
   <input id="imp" type="file" accept="application/json" style="display:none" onchange="importJSON(event)">
   <button class="tool ghost" onclick="limpar()">🗑️ Nova ficha</button>
+  <button class="tool ghost" id="btnUndo" onclick="undoChange()" disabled title="Voltar a última mudança (Ctrl+Z)">↶ Desfazer</button>
+  <button class="tool ghost" id="btnRedo" onclick="redoChange()" disabled title="Refazer (Ctrl+Y)">↷ Refazer</button>
+  <span id="zoomGrp">
+    <button class="tool ghost" onclick="zoomBy(-1)" title="Diminuir zoom">➖</button>
+    <span id="zoomPct">100%</span>
+    <button class="tool ghost" onclick="zoomBy(1)" title="Aumentar zoom">➕</button>
+    <button class="tool ghost" onclick="zoomFit()" title="Ajustar à largura da tela">⤢ Ajustar</button>
+  </span>
+  <button class="tool alt" id="btnFmt" onclick="toggleFormato()" title="Alternar entre o formato A4 original e o ajuste à tela">📄 Formato A4</button>
   <span class="spacer"></span>
   <small id="savestate">Salvamento automático ativo</small>
 </div>
@@ -719,6 +805,19 @@
     <p class="small" style="line-height:1.5;">
       <b>Dungeons &amp; Dragons</b>, D&amp;D e os nomes de magias, classes e regras são marcas e propriedade intelectual da <b>Wizards of the Coast LLC</b>. Esta é uma <b>ficha não-oficial, gratuita e sem fins lucrativos</b>, criada por <b>J. Simão Neto</b> responsável pelo <b>Grupo Pró=RPG</b>, como ferramenta de apoio ao jogo. Os nomes e a página das magias remetem ao <b>Livro do Jogador 2024</b>, cujo texto descritivo integral não é reproduzido aqui — consulte o seu exemplar. Os <b>resumos de magia</b> do Grimório são descrições próprias, baseadas em material do <b>System Reference Document 5.2 (“SRD 5.2”)</b> da Wizards of the Coast LLC, disponível em <a href="https://www.dndbeyond.com/srd">dndbeyond.com/srd</a> e licenciado sob <b>Creative Commons Attribution 4.0 (CC-BY-4.0)</b>. O conteúdo homebrew (<b>Aliança de Heróis</b> e <b>Suplemento de Classes da Aliança N:1</b>) é de autoria de <b>J. Simão Neto</b> e <b>Grupo Pró=RPG</b>.
     </p>
+  </div>
+</div>
+
+<!-- Botão flutuante e caixa grande para digitar textos confortavelmente no toque -->
+<button id="bigEditBtn" onclick="openBigEditFocused()">⌨️ Caixa grande</button>
+<div id="bigEditOverlay" class="be-ov" style="display:none">
+  <div class="be-box">
+    <div class="be-h"><span id="beTitle">Editar texto</span><button onclick="closeBigEdit(false)" title="Fechar">✕</button></div>
+    <textarea id="beText" placeholder="Digite aqui..."></textarea>
+    <div class="be-foot">
+      <button class="tool ghost" onclick="closeBigEdit(false)">Cancelar</button>
+      <button class="tool" onclick="closeBigEdit(true)">✓ Aplicar</button>
+    </div>
   </div>
 </div>
 
@@ -2667,6 +2766,231 @@ document.addEventListener('input', e=>{
     salvar();
   }
 });
+
+/* ============================================================
+   MÓDULO TOUCH: zoom por pinça, arraste, duplo-toque,
+   desfazer/refazer, caixa grande de digitação e troca de
+   formato (A4 original  ↔  ajuste à tela).
+   Acrescentado sem alterar a lógica original da ficha.
+   ============================================================ */
+(function(){
+  const docEl = document.documentElement;
+  const touchMode = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
+
+  /* ---- envolve as páginas num "palco" que recebe o zoom ---- */
+  const toolbar  = document.getElementById('toolbar');
+  const viewport = document.createElement('div'); viewport.id = 'viewport';
+  const sizer    = document.createElement('div'); sizer.id    = 'canvasSizer';
+  const canvas   = document.createElement('div'); canvas.id   = 'canvas';
+  sizer.appendChild(canvas); viewport.appendChild(sizer);
+  toolbar.insertAdjacentElement('afterend', viewport);
+  document.querySelectorAll('.sheet').forEach(s => canvas.appendChild(s));
+
+  let scale = 1, natW = 800, natH = 1000;
+  function isA4(){ return docEl.classList.contains('a4'); }
+  function setCanvasWidth(){
+    // largura SEMPRE definida: evita que o media query (.sheet width:auto) estoure
+    // a largura intrínseca do conteúdo dentro do palco de zoom.
+    if(isA4()) canvas.style.width = '794px';            // A4: 210mm ≈ 794px
+    else canvas.style.width = docEl.clientWidth + 'px'; // ajuste à tela: usa a largura da janela
+  }
+  function measure(){ natW = parseFloat(canvas.style.width) || 794; natH = canvas.scrollHeight || 1000; }
+  function applyZoom(){
+    canvas.style.transform = 'scale(' + scale + ')';
+    sizer.style.width  = Math.ceil(natW * scale) + 'px';
+    sizer.style.height = Math.ceil(natH * scale) + 'px';
+    const p = document.getElementById('zoomPct'); if(p) p.textContent = Math.round(scale * 100) + '%';
+  }
+  function relayout(){ setCanvasWidth(); measure(); applyZoom(); }
+  function clampScale(s){ return Math.max(0.25, Math.min(4, s)); }
+
+  /* aplica novo zoom mantendo fixo o ponto (mx,my) da tela */
+  function setScaleAt(newScale, mx, my){
+    newScale = clampScale(newScale);
+    const r = canvas.getBoundingClientRect();
+    const cx = (mx - r.left) / scale, cy = (my - r.top) / scale;
+    scale = newScale; applyZoom();
+    const r2 = canvas.getBoundingClientRect();
+    const wantL = mx - cx * scale, wantT = my - cy * scale;
+    window.scrollBy(r2.left - wantL, r2.top - wantT);
+  }
+  function zoomBy(dir){ setScaleAt(scale * (dir > 0 ? 1.2 : 1/1.2), window.innerWidth/2, window.innerHeight*0.4); }
+  function zoomFit(){
+    measure();
+    const avail = docEl.clientWidth - 12;
+    let f = avail / natW;
+    f = touchMode ? Math.min(f, 1.4) : Math.min(f, 1);
+    scale = clampScale(f); applyZoom();
+  }
+
+  /* ---- gestos: pinça (2 dedos), arraste (1 dedo), duplo-toque ---- */
+  const pts = new Map();
+  let pinchDist0 = 0, pinchScale0 = 1, panId = null, lastX = 0, lastY = 0, moved = false;
+  let tapTime = 0, tapX = 0, tapY = 0;
+  function dist(a,b){ return Math.hypot(a.x - b.x, a.y - b.y); }
+  if(touchMode){
+    viewport.addEventListener('pointerdown', e => {
+      pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
+      if(pts.size === 2){ const a=[...pts.values()]; pinchDist0=dist(a[0],a[1]); pinchScale0=scale; panId=null; }
+      else if(pts.size === 1){ panId=e.pointerId; lastX=e.clientX; lastY=e.clientY; moved=false; }
+    });
+    viewport.addEventListener('pointermove', e => {
+      if(!pts.has(e.pointerId)) return;
+      pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
+      if(pts.size >= 2){
+        const a=[...pts.values()]; const d=dist(a[0],a[1]);
+        const mx=(a[0].x+a[1].x)/2, my=(a[0].y+a[1].y)/2;
+        if(pinchDist0 > 0) setScaleAt(pinchScale0 * (d/pinchDist0), mx, my);
+        e.preventDefault();
+      } else if(pts.size === 1 && e.pointerId === panId){
+        const dx=e.clientX-lastX, dy=e.clientY-lastY;
+        if(!moved && (Math.abs(dx)+Math.abs(dy)) > 4) moved = true;
+        if(moved){ window.scrollBy(-dx,-dy); lastX=e.clientX; lastY=e.clientY; e.preventDefault(); }
+      }
+    }, {passive:false});
+    function ptUp(e){
+      const single = pts.size === 1;
+      if(single && !moved){            // toque simples: detecta duplo-toque p/ aproximar
+        const now = Date.now();
+        if(now - tapTime < 300 && Math.hypot(e.clientX-tapX, e.clientY-tapY) < 30){
+          if(scale < 1.6) setScaleAt(2, e.clientX, e.clientY); else zoomFit();
+          tapTime = 0;
+        } else { tapTime = now; tapX = e.clientX; tapY = e.clientY; }
+      }
+      pts.delete(e.pointerId);
+      if(pts.size < 2) pinchDist0 = 0;
+      if(pts.size === 1){ const it=[...pts.entries()][0]; panId=it[0]; lastX=it[1].x; lastY=it[1].y; moved=false; }
+      else if(pts.size === 0){ panId = null; }
+    }
+    viewport.addEventListener('pointerup', ptUp);
+    viewport.addEventListener('pointercancel', e => { pts.delete(e.pointerId); if(pts.size<2) pinchDist0=0; });
+  }
+  /* zoom com Ctrl + roda do mouse / trackpad (desktop) */
+  window.addEventListener('wheel', e => {
+    if(e.ctrlKey){ e.preventDefault(); setScaleAt(scale * (e.deltaY < 0 ? 1.1 : 1/1.1), e.clientX, e.clientY); }
+  }, {passive:false});
+
+  /* ---- troca de formato: A4 original  ↔  ajuste à tela ---- */
+  function reassertA4Rows(){
+    document.querySelectorAll('[style*="grid-template-columns"]').forEach(el => {
+      if(el.closest('#toolbar')) return;
+      if(isA4()){
+        if(el.dataset.gtc === undefined) el.dataset.gtc = el.style.gridTemplateColumns;
+        el.style.setProperty('grid-template-columns', el.dataset.gtc, 'important');
+      } else if(el.dataset.gtc !== undefined){
+        el.style.setProperty('grid-template-columns', el.dataset.gtc, '');
+      }
+    });
+  }
+  function setFormato(a4){
+    docEl.classList.toggle('a4', a4);
+    reassertA4Rows();
+    const b = document.getElementById('btnFmt');
+    if(b) b.textContent = a4 ? '📱 Ajustar à tela' : '📄 Formato A4';
+    relayout(); zoomFit();
+  }
+  function toggleFormato(){ setFormato(!isA4()); }
+
+  /* ---- desfazer / refazer ---- */
+  let undoStack = [], redoStack = [], curState = null, snapTimer = null, suppressSnap = false;
+  function serialize(){ try{ return JSON.stringify(coletar()); }catch(e){ return curState; } }
+  function updateUndoBtns(){
+    const u=document.getElementById('btnUndo'), r=document.getElementById('btnRedo');
+    if(u) u.disabled = undoStack.length === 0;
+    if(r) r.disabled = redoStack.length === 0;
+  }
+  function takeSnapshot(){
+    if(suppressSnap) return;
+    const s = serialize();
+    if(s !== curState && curState !== null){
+      undoStack.push(curState); if(undoStack.length > 60) undoStack.shift(); redoStack.length = 0;
+    }
+    curState = s; updateUndoBtns();
+  }
+  function scheduleSnapshot(){ if(suppressSnap) return; clearTimeout(snapTimer); snapTimer = setTimeout(takeSnapshot, 800); }
+  function applyStateStr(s){
+    suppressSnap = true;
+    try{ aplicar(JSON.parse(s)); recalc(); }catch(e){}
+    if(isA4()) reassertA4Rows();
+    relayout();
+    curState = s; updateUndoBtns();
+    setTimeout(()=>{ suppressSnap = false; }, 60);
+  }
+  function undoChange(){ if(!undoStack.length) return; redoStack.push(curState); applyStateStr(undoStack.pop()); }
+  function redoChange(){ if(!redoStack.length) return; undoStack.push(curState); applyStateStr(redoStack.pop()); }
+  /* embrulha o salvar() original para capturar os estados */
+  if(typeof salvar === 'function'){ const _s = salvar; salvar = function(){ _s.apply(this, arguments); scheduleSnapshot(); }; }
+  document.addEventListener('keydown', e => {
+    const mod = e.ctrlKey || e.metaKey; if(!mod) return;
+    const k = (e.key || '').toLowerCase();
+    if(k === 'z' && !e.shiftKey){ e.preventDefault(); undoChange(); }
+    else if((k === 'z' && e.shiftKey) || k === 'y'){ e.preventDefault(); redoChange(); }
+  });
+
+  /* ---- caixa grande para digitação de textos ---- */
+  let beField = null;
+  function showBeBtn(show){ const b=document.getElementById('bigEditBtn'); if(b) b.style.display = show ? 'block' : 'none'; }
+  if(touchMode){
+    document.addEventListener('focusin', e => {
+      const t = e.target;
+      if(t.closest && t.closest('#bigEditOverlay')) return;   // ignora o textarea da própria caixa grande
+      if(t.matches && t.matches('input:not([type=checkbox]):not([type=radio]):not([type=number]), textarea')){ beField = t; showBeBtn(true); }
+    });
+    document.addEventListener('focusout', () => {
+      setTimeout(()=>{ const a=document.activeElement; if(!a || !(a.matches && a.matches('input, textarea'))) showBeBtn(false); }, 250);
+    });
+  }
+  function openBigEdit(field){
+    beField = field;
+    const ta = document.getElementById('beText'); ta.value = field.value || '';
+    let lbl = ''; const w = field.closest && field.closest('.field');
+    if(w){ const l = w.querySelector('label'); if(l) lbl = l.textContent.trim(); }
+    if(!lbl){ const pnl = field.closest && field.closest('.panel'); const h = pnl && pnl.querySelector('h3'); if(h) lbl = h.textContent.trim(); }
+    if(!lbl) lbl = field.getAttribute('placeholder') || 'Editar texto';
+    document.getElementById('beTitle').textContent = lbl;
+    document.getElementById('bigEditOverlay').style.display = 'flex';
+    setTimeout(()=> ta.focus(), 60);
+  }
+  function openBigEditFocused(){ if(beField) openBigEdit(beField); }
+  function closeBigEdit(apply){
+    const ta = document.getElementById('beText');
+    if(apply && beField){
+      beField.value = ta.value;
+      beField.dispatchEvent(new Event('input',  {bubbles:true}));
+      beField.dispatchEvent(new Event('change', {bubbles:true}));
+    }
+    document.getElementById('bigEditOverlay').style.display = 'none';
+  }
+
+  /* ---- expõe ao HTML e inicializa ---- */
+  Object.assign(window, { zoomBy, zoomFit, toggleFormato, undoChange, redoChange, openBigEditFocused, openBigEdit, closeBigEdit });
+
+  if(touchMode){
+    docEl.classList.add('touch-canvas');
+    const mv = document.querySelector('meta[name=viewport]');
+    if(mv) mv.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
+    setFormato(true);          // começa no formato A4 original, ajustado à largura
+  } else {
+    relayout();
+  }
+
+  if('ResizeObserver' in window){
+    let roT; new ResizeObserver(()=>{ clearTimeout(roT); roT=setTimeout(()=>{ measure(); applyZoom(); }, 60); }).observe(canvas);
+  }
+  let rsT; window.addEventListener('resize', ()=>{ clearTimeout(rsT); rsT=setTimeout(relayout, 150); });
+  window.addEventListener('beforeprint', ()=>{ canvas.style.transform = 'none'; });
+  window.addEventListener('afterprint',  ()=>{ applyZoom(); });
+
+  curState = serialize(); updateUndoBtns();
+
+  if(touchMode && !localStorage.getItem('fichaDicaGestos')){
+    const tip = document.createElement('div'); tip.id = 'gestureTip';
+    tip.textContent = '👌 2 dedos = zoom  •  arraste = mover  •  toque 2× = aproximar';
+    document.body.appendChild(tip);
+    setTimeout(()=>{ tip.style.opacity = '0'; setTimeout(()=>tip.remove(), 600); }, 5500);
+    localStorage.setItem('fichaDicaGestos', '1');
+  }
+})();
 </script>
 </body>
 </html>
