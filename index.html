@@ -348,6 +348,12 @@
   html.touch-canvas #viewport{ touch-action:none; }
 
   /* grupo de zoom na barra de ferramentas */
+  /* botão de minimizar/maximizar o menu (só em telas de toque) */
+  #btnMenuToggle{ display:none; }
+  html.touch-canvas #btnMenuToggle{ display:inline-flex; align-items:center; gap:6px; order:-1; }
+  html.touch-canvas #toolbar.collapsed{ padding:6px 10px; gap:0; }
+  html.touch-canvas #toolbar.collapsed > *:not(#btnMenuToggle){ display:none !important; }
+
   #zoomGrp{ display:inline-flex; align-items:center; gap:4px; }
   #zoomPct{ min-width:48px; text-align:center; font-weight:700; color:#f4ecd8; font-size:12.5px; }
   #btnUndo:disabled, #btnRedo:disabled{ opacity:.4; cursor:default; }
@@ -417,6 +423,7 @@
 <body>
 
 <div id="toolbar">
+  <button id="btnMenuToggle" class="tool" onclick="toggleMenu()" title="Minimizar ou maximizar o menu">✕ Fechar menu</button>
   <h1>⚔️ Ficha — D&D 2024 / Aliança de Heróis</h1>
   <button class="tool" onclick="window.print()">🖨️ Salvar como PDF</button>
   <button class="tool alt" onclick="linkFicha()">🔗 Link da ficha</button>
@@ -2962,14 +2969,25 @@ document.addEventListener('input', e=>{
     document.getElementById('bigEditOverlay').style.display = 'none';
   }
 
+  /* ---- minimizar / maximizar o menu superior (celular/tablet) ---- */
+  function setMenu(collapsed){
+    const tb = document.getElementById('toolbar'); if(!tb) return;
+    tb.classList.toggle('collapsed', collapsed);
+    const b = document.getElementById('btnMenuToggle');
+    if(b) b.innerHTML = collapsed ? '☰ Menu' : '✕ Fechar menu';
+    try{ localStorage.setItem('fichaMenuColapsado', collapsed ? '1' : '0'); }catch(e){}
+  }
+  function toggleMenu(){ setMenu(!document.getElementById('toolbar').classList.contains('collapsed')); }
+
   /* ---- expõe ao HTML e inicializa ---- */
-  Object.assign(window, { zoomBy, zoomFit, toggleFormato, undoChange, redoChange, openBigEditFocused, openBigEdit, closeBigEdit });
+  Object.assign(window, { zoomBy, zoomFit, toggleFormato, undoChange, redoChange, openBigEditFocused, openBigEdit, closeBigEdit, toggleMenu });
 
   if(touchMode){
     docEl.classList.add('touch-canvas');
     const mv = document.querySelector('meta[name=viewport]');
     if(mv) mv.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no');
     setFormato(true);          // começa no formato A4 original, ajustado à largura
+    setMenu(localStorage.getItem('fichaMenuColapsado') === '1');   // aplica preferência do menu
   } else {
     relayout();
   }
